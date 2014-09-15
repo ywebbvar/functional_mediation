@@ -1,3 +1,7 @@
+%% This is my revised version of the file 'SimRevisionR2.m', in which I modify the code to run the simulation on my computer (Lenovo)
+
+addpath 'C:\Users\Yenny\Documents\GitHub\functional_mediation\Original_matlab_code'
+
 tic
 
 iters = 500;
