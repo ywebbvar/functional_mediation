@@ -1,7 +1,9 @@
 Applying Functional Mediation
 ====================
 
-Code for applying functional mediation. Cite: Lindquist, M. A. (2012). Functional Causal Mediation Analysis With an Application to Brain Connectivity. Journal of the American Statistical Association, 107(500), 1297–1309. doi:10.1080/01621459.2012.695640.
+Code for applying functional mediation. 
+
+Cite as: Lindquist, M. A. (2012). Functional Causal Mediation Analysis With an Application to Brain Connectivity. Journal of the American Statistical Association, 107(500), 1297–1309. doi:10.1080/01621459.2012.695640.
 
 @article{,
 author = {Lindquist, Martin A},
