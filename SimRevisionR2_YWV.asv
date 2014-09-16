@@ -41,8 +41,8 @@ for i=1:iters
         out = fMediation_ML(X',Y',M',nbasis,norder);       % Perform functional mediation
         stats = fbootstrap_ML(out, nboot,nbasis,norder);         % Perform stats
         
-        Pall(i,:) = 2*min(mean(stats.abfMat < 2*repmat(out.abfunction',nboot,1)), mean(stats.abfMat > 2*repmat(out.abfunction',nboot,1)));        
-        Pall2(i,:) = 2*min(mean(stats.abfMat < repmat(out.abfunction',nboot,1)), mean(stats.abfMat > repmat(out.abfunction',nboot,1)));        
+        Pall(i,:) = 2*min(mean(stats.abfMat < 2*repmat(out.abfunction',1000,1)), mean(stats.abfMat > 2*repmat(out.abfunction',1000,1)));        
+        Pall2(i,:) = 2*min(mean(stats.abfMat < repmat(out.abfunction',1000,1)), mean(stats.abfMat > repmat(out.abfunction',1000,1)));        
         A(i,:) = out.afunction';
         B(i,:) = out.bfunction';
         C(i) = out.c;
@@ -55,10 +55,9 @@ for i=1:iters
     
 end
 
-toc
-
 save 'Sim_1_rev_R2' A B C CP Pall Pall2 Flag
 
+toc
 
 %%
 
