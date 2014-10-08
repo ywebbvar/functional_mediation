@@ -19,7 +19,7 @@
 #' @examples
 #' fMediation_ML(x,y,m,...)
 
-fMediation_ML <- function(x,y,m,nbasis,norder,lambda=10,pen=0.1){
+fMediation_ML <- function(x,y,m,nbasis,norder,lambda=1e-8,pen=0.1){
   
   require(fda)
   len   = dim(m)[1]
