@@ -33,6 +33,10 @@ X = X - 1
 
 M = sapply(1:sub, function(i) rnorm(n = length(Z),mean=0, sd=1))
 Y = X + rnorm(sub, mean=0, sd=1)
+
+# To test function
+ x = X; y = Y; m=M;pen=0.1;estimate=2; lambda=10
+check = fMediation_ML(X,Y,M,nbasis,norder)
 ```
 
 
@@ -84,7 +88,7 @@ a     = sum(af)*(tfine[2] - tfine[1])
 ResM  = (m - eval.fd(tfine, fRegressCell[[5]]$fd))
 
 # Calculate Standard Error
-errmat     = m - eval.fd(timevec, fRegressCell[[5]])
+errmat     = m - eval.fd(tfine, fRegressCell[[5]]$fd)
 Sigma      = errmat%*%t(errmat)/N  # Originally, there was a 20 here, I assume it is the number of observations N
 DfdPar     = fdPar(basis, 0, 1)
 y2cMap     = smooth.basis(timevec,m,DfdPar)$y2cMap
@@ -172,23 +176,29 @@ betaestcell  = fRegressCell[[4]]
 tmp = eval.fd(tfine, betaestcell[[2]]$fd)
 c   = tmp[1]
 
+# Instrumental variables estimator
 IV2 = c/af
-
+  
 A  = matrix(af, ncol=len, nrow=len, byrow = TRUE)
 IV = solve(crossprod(A) + pen*diag(len))%*%t(A)%*%rep(1, len)
-
+ 
 # Plot results
+par(mfrow=c(3,1))
 plot(tfine, eval.fd(tfine,afun), type="l", main="'a' function")
 lines(tfine, af + 2*a_stderr, col="green")
 lines(tfine, af - 2*a_stderr, col="green")
 
 plot(tfine, eval.fd(tfine,bfun), type="l", main="'b' function")
-lines(tfine, bf + 2*a_stderr, col="green")
-lines(tfine, bf - 2*a_stderr, col="green")
+lines(tfine, bf + 2*b_stderr, col="green")
+lines(tfine, bf - 2*b_stderr, col="green")
 
 plot(tfine, abf, type="l", main="'ab' function")
 
-plot(x,y)
+#plot(x,y)
+
+result = list('afunction' = af, 'a' = a, 'bfunction' = bf, 'abfunction' = abf, 'b' = b, 'ab' = ab, 'c' = c, 'cp' = c,'x' = x, 'y' = y, 'm' = m,'tfine' = tfine,'b_stderr' = b_stderr,'IV' = IV,'IV2' = IV2,'ResM'= ResM,'ResY'= ResY)
+
+return(result)
 }
 ```
 
