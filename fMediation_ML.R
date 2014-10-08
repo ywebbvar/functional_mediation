@@ -3,14 +3,13 @@
 #' Fits a functional mediation model. Uses fda package
 #'
 #' Fits a functional model as in Lindquist 2012 JASA.
-#' @param x A 1 by N vector with treatment assignment
-#' @param y A 1 by N vector with outcome
-#' @param m A len(time) by N (repetitions) vector with mediator values
-#' @param nbasis The number of basis functions to use
-#' @param norder The order of the 
-#' @param estimate
-#' @param lambda
-#' @param pen 
+#' @param x a numeric vector with independent variable (treatment assignment)
+#' @param y a numeric vector with final outcomes
+#' @param m a (T by N) matrix with mediator values. Each columns represents one observed functional mediator.
+#' @param nbasis an integer variable specifying the number of basis functions. Argument for 'create.bspline.basis'
+#' @param norder an integer specifying the order of b-splines, which is one higher than their degree. Argument for 'create.bspline.basis'
+#' @param lambda a nonnegative real number specifying the amount of smoothing to be applied to the estimated functional parameters.
+#' @param pen a nonnegative real number specifying the amount of penalization to be applied to the estimated functional parameter using an instrument.
 #' @return afun A functional regression coefficient corresponding to a path
 #' @return bfun A functional regression coefficient corresponding to b path
 #' @return ab The ab effect
@@ -20,7 +19,7 @@
 #' @examples
 #' fMediation_ML(x,y,m,...)
 
-fMediation_ML <- function(x,y,m,nbasis,norder,estimate=2,lambda=10,pen=0.1){
+fMediation_ML <- function(x,y,m,nbasis,norder,lambda=10,pen=0.1){
   
   require(fda)
   len   = dim(m)[1]
@@ -97,7 +96,7 @@ fMediation_ML <- function(x,y,m,nbasis,norder,estimate=2,lambda=10,pen=0.1){
   betafd1       = fd(1,conbas)
   betacell[[1]] = fdPar(betafd1)
   betafdj       = fd(rep(0,nbasis), basis)
-  betafdPar     = fdPar(betafdj, estimate, lambda)
+  betafdPar     = fdPar(betafdj, lambda=lambda)
   betacell[[2]] = betafdPar
   betacell[[3]] = fdPar(betafd1)
   
