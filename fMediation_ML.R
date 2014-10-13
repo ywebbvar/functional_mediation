@@ -19,7 +19,7 @@
 #' @examples
 #' fMediation_ML(x,y,m,...)
 
-fMediation_ML <- function(x,y,m,nbasis,norder,lambda=1e-8,pen=0.1){
+fMediation_ML <- function(x,y,m,nbasis,norder,lambda=1e-8,pen=0.1, plot=FALSE, boot=FALSE){
   
   require(fda)
   len   = dim(m)[1]
@@ -162,6 +162,7 @@ fMediation_ML <- function(x,y,m,nbasis,norder,lambda=1e-8,pen=0.1){
   IV = solve(crossprod(A) + pen*diag(len))%*%t(A)%*%rep(1, len)
   
   # Plot results
+  if(plot==TRUE){
   par(mfrow=c(3,1))
   plot(tfine, eval.fd(tfine,afun), type="l", main="'a' function")
   lines(tfine, af + 2*a_stderr, col="green")
@@ -172,10 +173,13 @@ fMediation_ML <- function(x,y,m,nbasis,norder,lambda=1e-8,pen=0.1){
   lines(tfine, bf - 2*b_stderr, col="green")
   
   plot(tfine, abf, type="l", main="'ab' function")
-  
+  }
   #plot(x,y)
   
-  result = list('afunction' = af, 'a' = a, 'bfunction' = bf, 'abfunction' = abf, 'b' = b, 'ab' = ab, 'c' = c, 'cp' = c,'x' = x, 'y' = y, 'm' = m,'tfine' = tfine,'b_stderr' = b_stderr,'IV' = IV,'IV2' = IV2,'ResM'= ResM,'ResY'= ResY)
+  if(boot==FALSE) {result = list('afunction' = af, 'a' = a, 'bfunction' = bf, 'abfunction' = abf, 'b' = b, 'ab' = ab, 'c' = c, 'cp' = c,'x' = x, 'y' = y, 'm' = m,'tfine' = tfine,'b_stderr' = b_stderr,'IV' = IV,'IV2' = IV2,'ResM'= ResM,'ResY'= ResY)
+  }else{
+    result = abf
+  }
   
   return(result)
   
