@@ -13,20 +13,43 @@ library(refund)
 source('~/GitHub/functional_mediation/fMediation_ML.R')
 ```
 
-Load the canonical HRF function
+Defining bootstrap function:
+```{r fbootstrap}
+fbootstrap_ML <- function(dta, index){
+  dta = dta[index,]
+  Y = dta[,"Y"]
+  X = dta[,"X"]
+  M = t(dta[,seq(2+1,ncol(dta))])
+  
+  result = fMediation_ML(X,Y,M,nbasis,norder,lambda=1e-8, boot=TRUE)
+  return(result)
+}
+```
+
+Load the canonical HRF function:
 ```{r}
 short_HRF <- read.table("C:/Users/Yenny/Documents/GitHub/functional_mediation/YennyHRF")
 plot(1:length(short_HRF), short_HRF, type="l")
 ```
 
+Setting seed:
 ```{r}
-Z = c(rep(0,20), short_HRF, rep(0,20))
+seed = 794320
+```
 
+
+```{r}
 sub=20
 nbasis = 30
 norder = 6
+```
 
-seed = 794320
+```{r}
+Z = c(rep(0,20), short_HRF, rep(0,20))
+```
+
+
+```{r }
 set.seed(seed)
 X = rep(0,sub)
 X[sample(1:sub)[1:(floor(sub/2))]] = 2
@@ -35,10 +58,19 @@ X = X - 1
 M = sapply(1:sub, function(i) rnorm(n = length(Z),mean=0, sd=1))
 Y = X + rnorm(sub, mean=0, sd=1)
 
-write.csv(cbind(Y,X,t(M)), file=paste0("sim_",seed, ".csv"))
+# I used this code to get data to check the fMediation_ML function, 
+# it was causing problems with lambdas that are not very close to 
+# zero:
+#write.csv(cbind(Y,X,t(M)), file=paste0("sim_",seed, ".csv"))
 
-check = fMediation_ML(X,Y,M,nbasis,norder,lambda=1e-8)
+dta  = cbind('Y'=Y,'X'=X,'M' =t(M))
+
+out  = fMediation_ML(X,Y,M,nbasis,norder,lambda=1e-8)
+stat = boot(data = dta, statistic = fbootstrap_ML,R = 100,sim = "ordinary",stype = "i") 
+
 ```
 
+```{r}
 
+```
 
