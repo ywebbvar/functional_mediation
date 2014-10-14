@@ -42,10 +42,22 @@ seed = 794320
 sub=20
 nbasis = 30
 norder = 6
+
+iters = 1
 ```
 
 ```{r}
 Z = c(rep(0,20), short_HRF, rep(0,20))
+```
+
+```{r}
+Pall  = matrix(0, iters, length(Z))
+Pall2 = matrix(0, iters, length(Z))
+Flag  = rep(0, iters)
+A     = matrix(0, iters, length(Z))
+B     = matrix(0, iters, length(Z))
+C     = rep(0, iters)
+c     = rep(0, iters)
 ```
 
 
@@ -68,6 +80,18 @@ dta  = cbind('Y'=Y,'X'=X,'M' =t(M))
 out  = fMediation_ML(X,Y,M,nbasis,norder,lambda=1e-8)
 stat = boot(data = dta, statistic = fbootstrap_ML,R = 100,sim = "ordinary",stype = "i") 
 
+
+# Calculating p-value
+Pall = 2*apply(cbind(colMeans(stat$t < 2*matrix(stat$t0, ncol=ncol(stat$t), nrow=nrow(stat$t), byrow = TRUE)),
+                     colMeans(stat$t > 2*matrix(stat$t0, ncol=ncol(stat$t), nrow=nrow(stat$t), byrow = TRUE))),
+               1, min)
+Pall2 = 2*apply(cbind(colMeans(stat$t < matrix(stat$t0, ncol=ncol(stat$t), nrow=nrow(stat$t), byrow = TRUE)),
+                      colMeans(stat$t > matrix(stat$t0, ncol=ncol(stat$t), nrow=nrow(stat$t), byrow = TRUE))),
+               1, min)
+A[i,] = out$afunction
+B[i,] = out$bfunction
+C(i)  = out$c
+Cp(i) = out$cp
 ```
 
 ```{r}
