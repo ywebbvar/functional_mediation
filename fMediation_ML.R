@@ -10,6 +10,8 @@
 #' @param norder an integer specifying the order of b-splines, which is one higher than their degree. Argument for 'create.bspline.basis'
 #' @param lambda a nonnegative real number specifying the amount of smoothing to be applied to the estimated functional parameters.
 #' @param pen a nonnegative real number specifying the amount of penalization to be applied to the estimated functional parameter using an instrument.
+#' @param plot is a logical scalar, if TRUE, the function will produce plots of the a, b and ab paths.
+#' @param boot is a logical scalar, if TRUE, the function will only output the ab path, useful when bootstrap it.
 #' @return afun A functional regression coefficient corresponding to a path
 #' @return bfun A functional regression coefficient corresponding to b path
 #' @return ab The ab effect
