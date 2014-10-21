@@ -64,36 +64,38 @@ B     = matrix(0, iters, length(Z))
 C     = rep(0, iters)
 CP   = rep(0, iters)
 
-i = 1
+for(i = 1:iters){
+  set.seed(seed)
+  X = rep(0,sub)
+  X[sample(1:sub)[1:(floor(sub/2))]] = 2
+  X = X - 1 
+  
+  M = sapply(1:sub, function(i) rnorm(n = length(Z),mean=0, sd=1))
+  Y = X + rnorm(sub, mean=0, sd=1)
+  
+  # I used this code to get data to check the fMediation_ML function, 
+  # it was causing problems with lambdas that are not very close to 
+  # zero:
+  #write.csv(cbind(Y,X,t(M)), file=paste0("sim_",seed, ".csv"))
+  
+  dta  = cbind('Y'=Y,'X'=X,'M' =t(M))
+  
+  out  = fMediation_ML(X,Y,M,nbasis,norder,lambda=1e-8)
+  stat = boot(data = dta, statistic = fbootstrap_ML,R = nboot,sim = "ordinary",stype = "i") 
+  
+  
+  # Calculating p-value
+  Pall[i,] = 2*apply(cbind(colMeans(stat$t < 2*matrix(stat$t0, ncol=ncol(stat$t), nrow=nrow(stat$t), byrow = TRUE)),
+                           colMeans(stat$t > 2*matrix(stat$t0, ncol=ncol(stat$t), nrow=nrow(stat$t), byrow = TRUE))),1, min)
+  Pall2[i,] = 2*apply(cbind(colMeans(stat$t < matrix(stat$t0, ncol=ncol(stat$t), nrow=nrow(stat$t), byrow = TRUE)),
+                            colMeans(stat$t > matrix(stat$t0, ncol=ncol(stat$t), nrow=nrow(stat$t), byrow = TRUE))), 1, min)
+  A[i,] = out$afunction
+  B[i,] = out$bfunction
+  C[i]  = out$c
+  CP[i] = out$cp
+  }
 
-set.seed(seed)
-X = rep(0,sub)
-X[sample(1:sub)[1:(floor(sub/2))]] = 2
-X = X - 1 
-
-M = sapply(1:sub, function(i) rnorm(n = length(Z),mean=0, sd=1))
-Y = X + rnorm(sub, mean=0, sd=1)
-
-# I used this code to get data to check the fMediation_ML function, 
-# it was causing problems with lambdas that are not very close to 
-# zero:
-#write.csv(cbind(Y,X,t(M)), file=paste0("sim_",seed, ".csv"))
-
-dta  = cbind('Y'=Y,'X'=X,'M' =t(M))
-
-out  = fMediation_ML(X,Y,M,nbasis,norder,lambda=1e-8)
-stat = boot(data = dta, statistic = fbootstrap_ML,R = nboot,sim = "ordinary",stype = "i") 
-
-
-# Calculating p-value
-Pall[i,] = 2*apply(cbind(colMeans(stat$t < 2*matrix(stat$t0, ncol=ncol(stat$t), nrow=nrow(stat$t), byrow = TRUE)),
-                         colMeans(stat$t > 2*matrix(stat$t0, ncol=ncol(stat$t), nrow=nrow(stat$t), byrow = TRUE))),1, min)
-Pall2[i,] = 2*apply(cbind(colMeans(stat$t < matrix(stat$t0, ncol=ncol(stat$t), nrow=nrow(stat$t), byrow = TRUE)),
-                          colMeans(stat$t > matrix(stat$t0, ncol=ncol(stat$t), nrow=nrow(stat$t), byrow = TRUE))), 1, min)
-A[i,] = out$afunction
-B[i,] = out$bfunction
-C[i]  = out$c
-CP[i] = out$cp
+save(A,B,C,CP,Pall,Pall2, file=paste0("Simulation1_",format(Sys.time(), "%Y%m%d-%H%M"),".Rdata"))
 ```
 
 
@@ -109,31 +111,33 @@ B     = matrix(0, iters, length(Z))
 C     = rep(0, iters)
 CP   = rep(0, iters)
 
-i = 1
+for(i = 1:iters){
+  set.seed(seed+10)
+  X = rep(0,sub)
+  X[sample(1:sub)[1:(floor(sub/2))]] = 2
+  X = X - 1 
+  
+  M = sapply(1:sub, function(i) rnorm(n = length(Z),mean=0, sd=1)) + t((X+1)%*%t(Z))
+  Y = X + rnorm(sub, mean=0, sd=1)
+  
+  dta  = cbind('Y'=Y,'X'=X,'M' =t(M))
+  
+  out  = fMediation_ML(X,Y,M,nbasis,norder,lambda=1e-8, plot=TRUE)
+  stat = boot(data = dta, statistic = fbootstrap_ML,R = nboot,sim = "ordinary",stype = "i") 
+  
+  
+  # Calculating p-value
+  Pall[i,] = 2*apply(cbind(colMeans(stat$t < 2*matrix(stat$t0, ncol=ncol(stat$t), nrow=nrow(stat$t), byrow = TRUE)),
+                           colMeans(stat$t > 2*matrix(stat$t0, ncol=ncol(stat$t), nrow=nrow(stat$t), byrow = TRUE))),1, min)
+  Pall2[i,] = 2*apply(cbind(colMeans(stat$t < matrix(stat$t0, ncol=ncol(stat$t), nrow=nrow(stat$t), byrow = TRUE)),
+                            colMeans(stat$t > matrix(stat$t0, ncol=ncol(stat$t), nrow=nrow(stat$t), byrow = TRUE))), 1, min)
+  A[i,] = out$afunction
+  B[i,] = out$bfunction
+  C[i]  = out$c
+  CP[i] = out$cp
+}
 
-set.seed(seed+10)
-X = rep(0,sub)
-X[sample(1:sub)[1:(floor(sub/2))]] = 2
-X = X - 1 
-
-M = sapply(1:sub, function(i) rnorm(n = length(Z),mean=0, sd=1)) + t((X+1)%*%t(Z))
-Y = X + rnorm(sub, mean=0, sd=1)
-
-dta  = cbind('Y'=Y,'X'=X,'M' =t(M))
-
-out  = fMediation_ML(X,Y,M,nbasis,norder,lambda=1e-8, plot=TRUE)
-stat = boot(data = dta, statistic = fbootstrap_ML,R = nboot,sim = "ordinary",stype = "i") 
-
-
-# Calculating p-value
-Pall[i,] = 2*apply(cbind(colMeans(stat$t < 2*matrix(stat$t0, ncol=ncol(stat$t), nrow=nrow(stat$t), byrow = TRUE)),
-                         colMeans(stat$t > 2*matrix(stat$t0, ncol=ncol(stat$t), nrow=nrow(stat$t), byrow = TRUE))),1, min)
-Pall2[i,] = 2*apply(cbind(colMeans(stat$t < matrix(stat$t0, ncol=ncol(stat$t), nrow=nrow(stat$t), byrow = TRUE)),
-                          colMeans(stat$t > matrix(stat$t0, ncol=ncol(stat$t), nrow=nrow(stat$t), byrow = TRUE))), 1, min)
-A[i,] = out$afunction
-B[i,] = out$bfunction
-C[i]  = out$c
-CP[i] = out$cp
+save(A,B,C,CP,Pall,Pall2, file=paste0("Simulation2_",format(Sys.time(), "%Y%m%d-%H%M"),".Rdata"))
 ```
 
 
@@ -149,31 +153,32 @@ B     = matrix(0, iters, length(Z))
 C     = rep(0, iters)
 CP   = rep(0, iters)
 
-i = 1
-
-set.seed(seed+20)
-X = rep(0,sub)
-X[sample(1:sub)[1:(floor(sub/2))]] = 2
-X = X - 1 
-
-M = sapply(1:sub, function(i) rnorm(n = length(Z),mean=0, sd=1)) + Z
-Y = apply(M,2,function(m) sum(m[floor(nrow(M)/3):ceiling(nrow(M)*2/3)])) + rnorm(sub, mean=0, sd=1)
-
-dta  = cbind('Y'=Y,'X'=X,'M' =t(M))
-
-out  = fMediation_ML(X,Y,M,nbasis,norder,lambda=1e-8, plot=TRUE)
-stat = boot(data = dta, statistic = fbootstrap_ML,R = nboot,sim = "ordinary",stype = "i") 
-
-
-# Calculating p-value
-Pall[i,] = 2*apply(cbind(colMeans(stat$t < 2*matrix(stat$t0, ncol=ncol(stat$t), nrow=nrow(stat$t), byrow = TRUE)),
-                         colMeans(stat$t > 2*matrix(stat$t0, ncol=ncol(stat$t), nrow=nrow(stat$t), byrow = TRUE))),1, min)
-Pall2[i,] = 2*apply(cbind(colMeans(stat$t < matrix(stat$t0, ncol=ncol(stat$t), nrow=nrow(stat$t), byrow = TRUE)),
-                          colMeans(stat$t > matrix(stat$t0, ncol=ncol(stat$t), nrow=nrow(stat$t), byrow = TRUE))), 1, min)
-A[i,] = out$afunction
-B[i,] = out$bfunction
-C[i]  = out$c
-CP[i] = out$cp
+for(i = 1:iters){
+  set.seed(seed+20)
+  X = rep(0,sub)
+  X[sample(1:sub)[1:(floor(sub/2))]] = 2
+  X = X - 1 
+  
+  M = sapply(1:sub, function(i) rnorm(n = length(Z),mean=0, sd=1)) + Z
+  Y = apply(M,2,function(m) sum(m[floor(nrow(M)/3):ceiling(nrow(M)*2/3)])) + rnorm(sub, mean=0, sd=1)
+  
+  dta  = cbind('Y'=Y,'X'=X,'M' =t(M))
+  
+  out  = fMediation_ML(X,Y,M,nbasis,norder,lambda=1e-8, plot=TRUE)
+  stat = boot(data = dta, statistic = fbootstrap_ML,R = nboot,sim = "ordinary",stype = "i") 
+  
+  
+  # Calculating p-value
+  Pall[i,] = 2*apply(cbind(colMeans(stat$t < 2*matrix(stat$t0, ncol=ncol(stat$t), nrow=nrow(stat$t), byrow = TRUE)),
+                           colMeans(stat$t > 2*matrix(stat$t0, ncol=ncol(stat$t), nrow=nrow(stat$t), byrow = TRUE))),1, min)
+  Pall2[i,] = 2*apply(cbind(colMeans(stat$t < matrix(stat$t0, ncol=ncol(stat$t), nrow=nrow(stat$t), byrow = TRUE)),
+                            colMeans(stat$t > matrix(stat$t0, ncol=ncol(stat$t), nrow=nrow(stat$t), byrow = TRUE))), 1, min)
+  A[i,] = out$afunction
+  B[i,] = out$bfunction
+  C[i]  = out$c
+  CP[i] = out$cp
+}
+save(A,B,C,CP,Pall,Pall2, file=paste0("Simulation3_",format(Sys.time(), "%Y%m%d-%H%M"),".Rdata"))
 ```
 
 
@@ -190,31 +195,32 @@ B     = matrix(0, iters, length(Z))
 C     = rep(0, iters)
 CP    = rep(0, iters)
 
-i = 1
-
-set.seed(seed+30)
-X = rep(0,sub)
-X[sample(1:sub)[1:(floor(sub/2))]] = 2
-X = X - 1 
-
-M = sapply(1:sub, function(i) rnorm(n = length(Z),mean=0, sd=1)) + t((X+1)%*%t(Z))
-Y = apply(M,2,function(m) sum(m[floor(nrow(M)/3):ceiling(nrow(M)*2/3)])) + rnorm(sub, mean=0, sd=1)
-
-dta  = cbind('Y'=Y,'X'=X,'M' =t(M))
-
-out  = fMediation_ML(X,Y,M,nbasis,norder,lambda=1e-8, plot=TRUE)
-stat = boot(data = dta, statistic = fbootstrap_ML,R = nboot,sim = "ordinary",stype = "i") 
-
-
-# Calculating p-value
-Pall[i,] = 2*apply(cbind(colMeans(stat$t < 2*matrix(stat$t0, ncol=ncol(stat$t), nrow=nrow(stat$t), byrow = TRUE)),
-                         colMeans(stat$t > 2*matrix(stat$t0, ncol=ncol(stat$t), nrow=nrow(stat$t), byrow = TRUE))),1, min)
-Pall2[i,] = 2*apply(cbind(colMeans(stat$t < matrix(stat$t0, ncol=ncol(stat$t), nrow=nrow(stat$t), byrow = TRUE)),
-                          colMeans(stat$t > matrix(stat$t0, ncol=ncol(stat$t), nrow=nrow(stat$t), byrow = TRUE))), 1, min)
-A[i,] = out$afunction
-B[i,] = out$bfunction
-C[i]  = out$c
-CP[i] = out$cp
+for(i = 1:iters){
+  set.seed(seed+30)
+  X = rep(0,sub)
+  X[sample(1:sub)[1:(floor(sub/2))]] = 2
+  X = X - 1 
+  
+  M = sapply(1:sub, function(i) rnorm(n = length(Z),mean=0, sd=1)) + t((X+1)%*%t(Z))
+  Y = apply(M,2,function(m) sum(m[floor(nrow(M)/3):ceiling(nrow(M)*2/3)])) + rnorm(sub, mean=0, sd=1)
+  
+  dta  = cbind('Y'=Y,'X'=X,'M' =t(M))
+  
+  out  = fMediation_ML(X,Y,M,nbasis,norder,lambda=1e-8, plot=TRUE)
+  stat = boot(data = dta, statistic = fbootstrap_ML,R = nboot,sim = "ordinary",stype = "i") 
+  
+  
+  # Calculating p-value
+  Pall[i,] = 2*apply(cbind(colMeans(stat$t < 2*matrix(stat$t0, ncol=ncol(stat$t), nrow=nrow(stat$t), byrow = TRUE)),
+                           colMeans(stat$t > 2*matrix(stat$t0, ncol=ncol(stat$t), nrow=nrow(stat$t), byrow = TRUE))),1, min)
+  Pall2[i,] = 2*apply(cbind(colMeans(stat$t < matrix(stat$t0, ncol=ncol(stat$t), nrow=nrow(stat$t), byrow = TRUE)),
+                            colMeans(stat$t > matrix(stat$t0, ncol=ncol(stat$t), nrow=nrow(stat$t), byrow = TRUE))), 1, min)
+  A[i,] = out$afunction
+  B[i,] = out$bfunction
+  C[i]  = out$c
+  CP[i] = out$cp
+}
+save(A,B,C,CP,Pall,Pall2, file=paste0("Simulation4_",format(Sys.time(), "%Y%m%d-%H%M"),".Rdata"))
 ```
 
 
@@ -231,31 +237,33 @@ B     = matrix(0, iters, length(Z))
 C     = rep(0, iters)
 CP    = rep(0, iters)
 
-i = 1
+for(i = 1:iters){
+  set.seed(seed+30)
+  X = rep(0,sub)
+  X[sample(1:sub)[1:(floor(sub/2))]] = 2
+  X = X - 1 
+  
+  eps = sapply(1:sub, function(i) rnorm(n = length(Z),mean=0, sd=1))
+  M   = t((X)%*%t(Z)) + eps
+  eta = apply(eps,2,function(e) sum(e[floor(nrow(M)/3):ceiling(nrow(M)*2/3)])) + rnorm(sub, mean=0, sd=1)
+  Y   = apply(M,2,function(m) sum(m[floor(nrow(M)/3):ceiling(nrow(M)*2/3)])) + eta
+  
+  dta  = cbind('Y'=Y,'X'=X,'M' =t(M))
+  
+  out  = fMediation_ML(X,Y,M,nbasis,norder,lambda=1e-8, plot=TRUE)
+  stat = boot(data = dta, statistic = fbootstrap_ML,R = nboot,sim = "ordinary",stype = "i") 
+  
+  
+  # Calculating p-value
+  Pall[i,] = 2*apply(cbind(colMeans(stat$t < 2*matrix(stat$t0, ncol=ncol(stat$t), nrow=nrow(stat$t), byrow = TRUE)),
+                           colMeans(stat$t > 2*matrix(stat$t0, ncol=ncol(stat$t), nrow=nrow(stat$t), byrow = TRUE))),1, min)
+  Pall2[i,] = 2*apply(cbind(colMeans(stat$t < matrix(stat$t0, ncol=ncol(stat$t), nrow=nrow(stat$t), byrow = TRUE)),
+                            colMeans(stat$t > matrix(stat$t0, ncol=ncol(stat$t), nrow=nrow(stat$t), byrow = TRUE))), 1, min)
+  A[i,] = out$afunction
+  B[i,] = out$bfunction
+  C[i]  = out$c
+  CP[i] = out$cp
+}
 
-set.seed(seed+30)
-X = rep(0,sub)
-X[sample(1:sub)[1:(floor(sub/2))]] = 2
-X = X - 1 
-
-eps = sapply(1:sub, function(i) rnorm(n = length(Z),mean=0, sd=1))
-M   = t((X)%*%t(Z)) + eps
-eta = apply(eps,2,function(e) sum(e[floor(nrow(M)/3):ceiling(nrow(M)*2/3)])) + rnorm(sub, mean=0, sd=1)
-Y   = apply(M,2,function(m) sum(m[floor(nrow(M)/3):ceiling(nrow(M)*2/3)])) + eta
-
-dta  = cbind('Y'=Y,'X'=X,'M' =t(M))
-
-out  = fMediation_ML(X,Y,M,nbasis,norder,lambda=1e-8, plot=TRUE)
-stat = boot(data = dta, statistic = fbootstrap_ML,R = nboot,sim = "ordinary",stype = "i") 
-
-
-# Calculating p-value
-Pall[i,] = 2*apply(cbind(colMeans(stat$t < 2*matrix(stat$t0, ncol=ncol(stat$t), nrow=nrow(stat$t), byrow = TRUE)),
-                         colMeans(stat$t > 2*matrix(stat$t0, ncol=ncol(stat$t), nrow=nrow(stat$t), byrow = TRUE))),1, min)
-Pall2[i,] = 2*apply(cbind(colMeans(stat$t < matrix(stat$t0, ncol=ncol(stat$t), nrow=nrow(stat$t), byrow = TRUE)),
-                          colMeans(stat$t > matrix(stat$t0, ncol=ncol(stat$t), nrow=nrow(stat$t), byrow = TRUE))), 1, min)
-A[i,] = out$afunction
-B[i,] = out$bfunction
-C[i]  = out$c
-CP[i] = out$cp
+save(A,B,C,CP,Pall,Pall2, file=paste0("Simulation5_",format(Sys.time(), "%Y%m%d-%H%M"),".Rdata"))
 ```
