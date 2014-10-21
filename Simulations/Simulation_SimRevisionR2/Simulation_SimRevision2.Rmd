@@ -64,7 +64,7 @@ B     = matrix(0, iters, length(Z))
 C     = rep(0, iters)
 CP   = rep(0, iters)
 
-for(i = 1:iters){
+for(i in 1:iters){
   set.seed(seed)
   X = rep(0,sub)
   X[sample(1:sub)[1:(floor(sub/2))]] = 2
@@ -80,9 +80,11 @@ for(i = 1:iters){
   
   dta  = cbind('Y'=Y,'X'=X,'M' =t(M))
   
-  out  = fMediation_ML(X,Y,M,nbasis,norder,lambda=1e-8)
-  stat = boot(data = dta, statistic = fbootstrap_ML,R = nboot,sim = "ordinary",stype = "i") 
+  out  = fMediation_ML(X,Y,M,nbasis,norder,lambda=1e-8, plot=FALSE)
+  stat = boot(data = dta, statistic = fbootstrap_ML,R = nboot,sim = "ordinary",stype = "i")
+  #stat = boot(data = dta, statistic = fbootstrap_ML,R = nboot,sim = "ordinary",stype = "i",parallel = "multicore",ncpus=10)
   
+              
   
   # Calculating p-value
   Pall[i,] = 2*apply(cbind(colMeans(stat$t < 2*matrix(stat$t0, ncol=ncol(stat$t), nrow=nrow(stat$t), byrow = TRUE)),
@@ -111,7 +113,7 @@ B     = matrix(0, iters, length(Z))
 C     = rep(0, iters)
 CP   = rep(0, iters)
 
-for(i = 1:iters){
+for(i in 1:iters){ 
   set.seed(seed+10)
   X = rep(0,sub)
   X[sample(1:sub)[1:(floor(sub/2))]] = 2
@@ -122,7 +124,7 @@ for(i = 1:iters){
   
   dta  = cbind('Y'=Y,'X'=X,'M' =t(M))
   
-  out  = fMediation_ML(X,Y,M,nbasis,norder,lambda=1e-8, plot=TRUE)
+  out  = fMediation_ML(X,Y,M,nbasis,norder,lambda=1e-8, plot=FALSE)
   stat = boot(data = dta, statistic = fbootstrap_ML,R = nboot,sim = "ordinary",stype = "i") 
   
   
@@ -153,7 +155,7 @@ B     = matrix(0, iters, length(Z))
 C     = rep(0, iters)
 CP   = rep(0, iters)
 
-for(i = 1:iters){
+for(i in 1:iters){ 
   set.seed(seed+20)
   X = rep(0,sub)
   X[sample(1:sub)[1:(floor(sub/2))]] = 2
@@ -164,7 +166,7 @@ for(i = 1:iters){
   
   dta  = cbind('Y'=Y,'X'=X,'M' =t(M))
   
-  out  = fMediation_ML(X,Y,M,nbasis,norder,lambda=1e-8, plot=TRUE)
+  out  = fMediation_ML(X,Y,M,nbasis,norder,lambda=1e-8, plot=FALSE)
   stat = boot(data = dta, statistic = fbootstrap_ML,R = nboot,sim = "ordinary",stype = "i") 
   
   
@@ -195,7 +197,7 @@ B     = matrix(0, iters, length(Z))
 C     = rep(0, iters)
 CP    = rep(0, iters)
 
-for(i = 1:iters){
+for(i in 1:iters){ 
   set.seed(seed+30)
   X = rep(0,sub)
   X[sample(1:sub)[1:(floor(sub/2))]] = 2
@@ -206,7 +208,7 @@ for(i = 1:iters){
   
   dta  = cbind('Y'=Y,'X'=X,'M' =t(M))
   
-  out  = fMediation_ML(X,Y,M,nbasis,norder,lambda=1e-8, plot=TRUE)
+  out  = fMediation_ML(X,Y,M,nbasis,norder,lambda=1e-8, plot=FALSE)
   stat = boot(data = dta, statistic = fbootstrap_ML,R = nboot,sim = "ordinary",stype = "i") 
   
   
@@ -237,8 +239,8 @@ B     = matrix(0, iters, length(Z))
 C     = rep(0, iters)
 CP    = rep(0, iters)
 
-for(i = 1:iters){
-  set.seed(seed+30)
+for(i in 1:iters){ 
+  set.seed(seed+40)
   X = rep(0,sub)
   X[sample(1:sub)[1:(floor(sub/2))]] = 2
   X = X - 1 
@@ -250,7 +252,7 @@ for(i = 1:iters){
   
   dta  = cbind('Y'=Y,'X'=X,'M' =t(M))
   
-  out  = fMediation_ML(X,Y,M,nbasis,norder,lambda=1e-8, plot=TRUE)
+  out  = fMediation_ML(X,Y,M,nbasis,norder,lambda=1e-8, plot=FALSE)
   stat = boot(data = dta, statistic = fbootstrap_ML,R = nboot,sim = "ordinary",stype = "i") 
   
   
