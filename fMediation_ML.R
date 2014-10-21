@@ -5,9 +5,9 @@
 #' Fits a functional model as in Lindquist 2012 JASA.
 #' @param x a numeric vector with independent variable (treatment assignment)
 #' @param y a numeric vector with final outcomes
-#' @param m a (T by N) matrix with mediator values. Each columns represents one observed functional mediator.
-#' @param nbasis an integer variable specifying the number of basis functions. Argument for 'create.bspline.basis'
-#' @param norder an integer specifying the order of b-splines, which is one higher than their degree. Argument for 'create.bspline.basis'
+#' @param m a (\code{T} by \code{N}) matrix with mediator values. Each columns represents one observed functional mediator.
+#' @param nbasis an integer variable specifying the number of basis functions. Argument for \code{\link[fda]{create.bspline.basis}}
+#' @param norder an integer specifying the order of b-splines, which is one higher than their degree. Argument for \code{\link[fda]{create.bspline.basis}}
 #' @param lambda a nonnegative real number specifying the amount of smoothing to be applied to the estimated functional parameters.
 #' @param pen a nonnegative real number specifying the amount of penalization to be applied to the estimated functional parameter using an instrument.
 #' @param plot is a logical scalar, if TRUE, the function will produce plots of the a, b and ab paths.
