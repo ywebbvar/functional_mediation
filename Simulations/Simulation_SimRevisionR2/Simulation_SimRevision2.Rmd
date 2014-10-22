@@ -44,8 +44,8 @@ sub=20
 nbasis = 30
 norder = 6
 
-iters = 1
-nboot = 50
+iters = 1  #500
+nboot = 50 #1000
 ```
 
 ```{r}
@@ -81,8 +81,8 @@ for(i in 1:iters){
   dta  = cbind('Y'=Y,'X'=X,'M' =t(M))
   
   out  = fMediation_ML(X,Y,M,nbasis,norder,lambda=1e-8, plot=FALSE)
-  stat = boot(data = dta, statistic = fbootstrap_ML,R = nboot,sim = "ordinary",stype = "i")
-  #stat = boot(data = dta, statistic = fbootstrap_ML,R = nboot,sim = "ordinary",stype = "i",parallel = "multicore",ncpus=10)
+  #stat = boot(data = dta, statistic = fbootstrap_ML,R = nboot,sim = "ordinary",stype = "i")
+  stat = boot(data = dta, statistic = fbootstrap_ML,R = nboot,sim = "ordinary",stype = "i",parallel = "multicore",ncpus=10)
   
               
   
@@ -125,7 +125,8 @@ for(i in 1:iters){
   dta  = cbind('Y'=Y,'X'=X,'M' =t(M))
   
   out  = fMediation_ML(X,Y,M,nbasis,norder,lambda=1e-8, plot=FALSE)
-  stat = boot(data = dta, statistic = fbootstrap_ML,R = nboot,sim = "ordinary",stype = "i") 
+  #stat = boot(data = dta, statistic = fbootstrap_ML,R = nboot,sim = "ordinary",stype = "i") 
+  stat = boot(data = dta, statistic = fbootstrap_ML,R = nboot,sim = "ordinary",stype = "i",parallel = "multicore",ncpus=10)
   
   
   # Calculating p-value
@@ -167,7 +168,8 @@ for(i in 1:iters){
   dta  = cbind('Y'=Y,'X'=X,'M' =t(M))
   
   out  = fMediation_ML(X,Y,M,nbasis,norder,lambda=1e-8, plot=FALSE)
-  stat = boot(data = dta, statistic = fbootstrap_ML,R = nboot,sim = "ordinary",stype = "i") 
+  #stat = boot(data = dta, statistic = fbootstrap_ML,R = nboot,sim = "ordinary",stype = "i") 
+  stat = boot(data = dta, statistic = fbootstrap_ML,R = nboot,sim = "ordinary",stype = "i",parallel = "multicore",ncpus=10)
   
   
   # Calculating p-value
@@ -209,7 +211,8 @@ for(i in 1:iters){
   dta  = cbind('Y'=Y,'X'=X,'M' =t(M))
   
   out  = fMediation_ML(X,Y,M,nbasis,norder,lambda=1e-8, plot=FALSE)
-  stat = boot(data = dta, statistic = fbootstrap_ML,R = nboot,sim = "ordinary",stype = "i") 
+  #stat = boot(data = dta, statistic = fbootstrap_ML,R = nboot,sim = "ordinary",stype = "i") 
+  stat = boot(data = dta, statistic = fbootstrap_ML,R = nboot,sim = "ordinary",stype = "i",parallel = "multicore",ncpus=10)
   
   
   # Calculating p-value
@@ -229,7 +232,7 @@ save(A,B,C,CP,Pall,Pall2, file=paste0("Simulation4_",format(Sys.time(), "%Y%m%d-
 ### Simulation 5. Confounding
 In this simulation, $M$ depends on $Z$, $X$ and $\epsilon$, $Y$ only depends on $M$ and $\epsilon$.
 
-```{r}
+```{r eval=FALSE}
 P     = rep(0,iters)
 Pall  = matrix(0, iters, length(Z))
 Pall2 = matrix(0, iters, length(Z))
@@ -253,7 +256,8 @@ for(i in 1:iters){
   dta  = cbind('Y'=Y,'X'=X,'M' =t(M))
   
   out  = fMediation_ML(X,Y,M,nbasis,norder,lambda=1e-8, plot=FALSE)
-  stat = boot(data = dta, statistic = fbootstrap_ML,R = nboot,sim = "ordinary",stype = "i") 
+  #stat = boot(data = dta, statistic = fbootstrap_ML,R = nboot,sim = "ordinary",stype = "i") 
+  stat = boot(data = dta, statistic = fbootstrap_ML,R = nboot,sim = "ordinary",stype = "i",parallel = "multicore",ncpus=10)
   
   
   # Calculating p-value
