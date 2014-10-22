@@ -1,0 +1,126 @@
+---
+title: "Revisiting old simulation, trying out fMediation_ML"
+author: "Yenny Webb-Vargas"
+date: "Wednesday, October 22, 2014"
+output: html_document
+---
+
+My data.
+
+```{r}
+library(refund)
+library(RColorBrewer, warn.conflicts = FALSE)
+qualpalette <- brewer.pal(8,"Set2")
+
+library(boot)
+source('~/GitHub/functional_mediation/fMediation_ML.R')
+```
+
+```{r HRF}
+short_HRF <- read.table("C:/Users/Yenny/Dropbox/2012 Research/Mediation_Research/Data_experiment/YennyHRF")
+HRF <- c(rep(0,5), as.numeric(short_HRF)[2*(1:10)],rep(0,8))
+```
+
+```{r demeans}
+demean <- function(mat) mat - matrix(colMeans(mat), ncol=ncol(mat), nrow=nrow(mat), byrow=TRUE)
+CI_95 <- function(mean, sd) mean + qnorm(c(0.025,0.975))*sd
+```
+
+```{r}
+source('C:/Users/Yenny/Dropbox/2012 Research/Mediation_Research/Data_experiment/20130805_simulation_fRPM/20130805_simulation_fRPM_Only_PCs.R')
+```
+
+
+Trial 1. 
+----------------------
+  This set up has:
+  - Standard deviations for mediator and outcome of 1
+- An effect of the mediator that is large (gaussian form with peak = 5)
+- Treatment effect of 3
+- Parameters for mediator that incorporate all the PCs
+
+
+```{r simul_data}
+Phi_mat   <- PCs
+n_timepts <- nrow(PCs)
+n_bases   <- ncol(PCs)
+score.sds   <- round(sqrt(apply(scores, 2, var)),1)
+
+## 0. Create uber parameters: 
+l2_sd       <- 0      # Size of interaction effect (X*Z on M)
+l1_wrt_2    <- 0.6    # Comparison of l1 size with respect l2
+seed_num    <- 10
+peak_beta   <- 5/dnorm(0, mean = 0, sd = 0.5)  # Take the peak of a normal at z=0, scale to have an effect of 5
+sd_epsilon  <- 1
+sd_eta      <- 1
+
+## 1. Create parameters: covariate and treatment effects
+set.seed(4953011+seed_num)
+d1_vector <- sapply(score.sds, function(x) rnorm(1,mean=0, sd=x))
+l1_vector <- c(rnorm(5,0,l1_wrt_2),rep(0,5))
+l2_vector <- c(rnorm(6,0,l2_sd), rep(0,4))
+
+
+delta_1  <- (Phi_mat[,1:10]%*%d1_vector[1:10])+abs(min((Phi_mat[,1:10]%*%d1_vector[1:10])))
+alpha    <- HRF*5
+lambda_1 <- Phi_mat[,1:10]%*%l1_vector[1:10]
+lambda_2 <- Phi_mat[,1:10]%*%l2_vector[1:10]
+
+plot(delta_1, ylim=range(cbind(delta_1,alpha,lambda_1, lambda_2)) ,type="n")
+lines(delta_1, col=qualpalette[1])
+lines(alpha, col=qualpalette[2])
+lines(lambda_1, col=qualpalette[3])
+lines(lambda_2, col=qualpalette[4])
+legend("bottomright", expression(delta, alpha, lambda[1],lambda[2]), col=qualpalette[1:4], lty=1, cex=1.5)
+
+
+## 2. Generate potential mediators
+
+n <- 100
+
+X        <- rnorm(n, 1,1)
+Z        <- rbinom(n,1,0.5)
+epsilon  <- matrix(rnorm(n*n_timepts,0,sd_epsilon), ncol=n_timepts,nrow=(n))
+
+design_M <- cbind(int=1,Z=Z)
+coeff_M  <- cbind(delta_1,alpha)
+colnames(coeff_M) <- c("delta_1","alpha")
+
+M        <- t(tcrossprod(coeff_M, design_M))
+M_obs    <- M+epsilon
+
+## No confounding scenario:
+
+delta_2  <- 5
+gamma    <- 3
+
+beta     <- dnorm(seq(-3.5,6.5,length.out=n_timepts), mean = 0, sd = 0.5)*peak_beta
+
+set.seed(5048191+seed_num)
+eta      <- rnorm(n, 0, sd_eta) 
+
+design_M_Y <- cbind(int=1,Z=Z,M_obs=M_obs)
+coeff_M_Y  <- cbind(delta_2,gamma, t(beta))
+
+Y_obs    <- t(tcrossprod(coeff_M_Y, design_M_Y)) + eta
+Y_obs    <- as.numeric(Y_obs)
+
+plot(M_obs[1,], xlim = c(1,ncol(M_obs)), ylim = range(M_obs, na.rm=TRUE), main = "Mediator Functions \n with Errors", ylab = "Intensity", col = rgb((200*Z[1]+1),1,1, 30, maxColorValue = 255), type = "l")
+for (i in 2:nrow(M)){ 
+  lines(M_obs[i,], col=rgb((200*Z[i]+1),1,1, 30, maxColorValue=255))
+}
+lines(beta, col="blue")
+
+hist(Y_obs)
+boxplot(Y_obs~Z)
+
+hist(crossprod(t(M_obs),beta))
+```
+
+```{r}
+nbasis = 30
+norder = 6
+
+out  = fMediation_ML(Z,Y_obs,t(M_obs),nbasis,norder,lambda=1e-8, plot=TRUE)
+```
+
