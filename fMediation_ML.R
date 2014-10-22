@@ -1,4 +1,4 @@
-#' Functional Mediation
+#' Functional Mediation. Testing functionality to add functional intercept
 #' 
 #' Fits a functional mediation model. Uses fda package
 #'
@@ -24,6 +24,7 @@
 fMediation_ML <- function(x,y,m,nbasis,norder,lambda=1e-8,pen=0.1, plot=FALSE, boot=FALSE){
   
   require(fda)
+
   len   = dim(m)[1]
   N     = dim(m)[2]
   T_sup = 1
@@ -52,7 +53,7 @@ fMediation_ML <- function(x,y,m,nbasis,norder,lambda=1e-8,pen=0.1, plot=FALSE, b
   # Create basis set for beta functions
   betacell      = list()
   betabasis     = create.bspline.basis(c(0,T_sup), nbasis, norder)
-  betafd1       = fd(1,conbas)
+  betafd1       = fd(matrix(0,nrow=nbasis, ncol=1), betabasis)
   betacell[[1]] = fdPar(betafd1)
   betafdj       = fd(matrix(0,nrow=nbasis, ncol=1), betabasis)
   betacell[[2]] =fdPar(betafdj)
@@ -128,41 +129,7 @@ fMediation_ML <- function(x,y,m,nbasis,norder,lambda=1e-8,pen=0.1, plot=FALSE, b
   
   tmp = eval.fd(tfine, betaestcell[[3]]$fd) # c'-path
   cp  = tmp[1]
-  
-  
-  ######################
-  ###  Path x -> y   ###
-  ######################
-  
-  # Create Design matrix
-  xfdcell      = list()
-  conbas       = create.constant.basis(c(0,T_sup))
-  confd        = fd(matrix(1,nrow=1,ncol=N), conbas)
-  xfdcell[[1]] = confd
-  xfdcell[[2]] = fd(matrix(x,nrow=1,ncol=N), conbas)
-  
-  # Response variable
-  yfdPar = y
-  
-  # Create basis set for beta functions
-  betacell      = list()
-  betafd1       = fd(1,conbas)
-  betacell[[1]] = fdPar(betafd1)
-  betacell[[2]] = fdPar(betafd1)
-  
-  # Solve least-squares equation
-  fRegressCell = fRegress(yfdPar, xfdcell, betacell)
-  betaestcell  = fRegressCell[[4]]
-  
-  tmp = eval.fd(tfine, betaestcell[[2]]$fd)
-  c   = tmp[1]
-  
-  # Instrumental variables estimator
-  IV2 = c/af
-  
-  A  = matrix(af, ncol=len, nrow=len, byrow = TRUE)
-  IV = solve(crossprod(A) + pen*diag(len))%*%t(A)%*%rep(1, len)
-  
+
   # Plot results
   if(plot==TRUE){
   par(mfrow=c(3,1))
@@ -178,7 +145,7 @@ fMediation_ML <- function(x,y,m,nbasis,norder,lambda=1e-8,pen=0.1, plot=FALSE, b
   }
   #plot(x,y)
   
-  if(boot==FALSE) {result = list('afunction' = af, 'a' = a, 'bfunction' = bf, 'abfunction' = abf, 'b' = b, 'ab' = ab, 'c' = c, 'cp' = c,'x' = x, 'y' = y, 'm' = m,'tfine' = tfine,'b_stderr' = b_stderr,'IV' = IV,'IV2' = IV2,'ResM'= ResM,'ResY'= ResY)
+  if(boot==FALSE) {result = list('afunction' = af, 'a' = a, 'bfunction' = bf, 'abfunction' = abf, 'b' = b, 'ab' = ab, 'c' = c, 'x' = x, 'y' = y, 'm' = m,'tfine' = tfine,'b_stderr' = b_stderr,'ResM'= ResM,'ResY'= ResY)
   }else{
     result = abf
   }
