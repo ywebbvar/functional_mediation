@@ -1,0 +1,20 @@
+---
+title: "Simulations SimRevisionR2"
+author: "Yenny Webb-Vargas"
+date: "Wednesday, October 29, 2014"
+output: html_document
+---
+
+Results from the simulation from the JASA 2012 paper. 
+
+```{r}
+filenames = dir()[grep(".Rdata",dir())]
+```
+
+# Simulation 1
+```{r}
+load(filenames[grep("Simulation1", filenames)])
+
+AB = A*B
+```
+
