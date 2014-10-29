@@ -78,7 +78,7 @@ fMediation_ML <- function(x,y,m,nbasis,norder,lambda=1e-8,pen=0.1, plot=FALSE, b
   tmp        = stderrCell[[1]]
   
   a_stderr = eval.fd(tfine, tmp[[2]]) # Std Error of a-function
-  
+  #plotbeta(betaestlist = fRegressCell$betaestlist, betastderrlist = stderrCell$betastderrlist)
   
   ######################
   ## Path x, m -> y  ###
@@ -86,6 +86,7 @@ fMediation_ML <- function(x,y,m,nbasis,norder,lambda=1e-8,pen=0.1, plot=FALSE, b
   
   # Create Design matrix
   mfdcell      = list()
+  
   mfdcell[[1]] = confd
   basis        = create.bspline.basis(c(0,T_sup), nbasis, norder)
   mfdcell[[2]] = Data2fd(argvals = timevec, y = m, basis)
