@@ -57,22 +57,13 @@ sd_eta      <- 1
 ## 1. Create parameters: covariate and treatment effects
 set.seed(4953011+seed_num)
 d1_vector <- sapply(score.sds, function(x) rnorm(1,mean=0, sd=x))
-l1_vector <- c(rnorm(5,0,l1_wrt_2),rep(0,5))
-l2_vector <- c(rnorm(6,0,l2_sd), rep(0,4))
-
 
 delta_1  <- (Phi_mat[,1:10]%*%d1_vector[1:10])+abs(min((Phi_mat[,1:10]%*%d1_vector[1:10])))
 alpha    <- HRF*5
-lambda_1 <- Phi_mat[,1:10]%*%l1_vector[1:10]
-lambda_2 <- Phi_mat[,1:10]%*%l2_vector[1:10]
 
-plot(delta_1, ylim=range(cbind(delta_1,alpha,lambda_1, lambda_2)) ,type="n")
+plot(delta_1, ylim=range(cbind(delta_1,alpha)) ,type="n")
 lines(delta_1, col=qualpalette[1])
 lines(alpha, col=qualpalette[2])
-lines(lambda_1, col=qualpalette[3])
-lines(lambda_2, col=qualpalette[4])
-legend("bottomright", expression(delta, alpha, lambda[1],lambda[2]), col=qualpalette[1:4], lty=1, cex=1.5)
-
 
 ## 2. Generate potential mediators
 
@@ -99,8 +90,9 @@ beta     <- dnorm(seq(-3.5,6.5,length.out=n_timepts), mean = 0, sd = 0.5)*peak_b
 set.seed(5048191+seed_num)
 eta      <- rnorm(n, 0, sd_eta) 
 
+
 design_M_Y <- cbind(int=1,Z=Z,M_obs=M_obs)
-coeff_M_Y  <- cbind(delta_2,gamma, t(beta))
+coeff_M_Y  <- cbind(delta_2,gamma, t(beta)*1/(ncol(M_obs)-1))
 
 Y_obs    <- t(tcrossprod(coeff_M_Y, design_M_Y)) + eta
 Y_obs    <- as.numeric(Y_obs)
@@ -118,16 +110,22 @@ hist(crossprod(t(M_obs),beta))
 ```
 
 ```{r}
-nbasis = 30
-norder = 6
+out  = fMediation_ML(Z,Y_obs,t(M_obs),nbasis=30,norder=6,lambda=1e-8, plot=TRUE)
 
-out  = fMediation_ML(Z,Y_obs,t(M_obs),nbasis,norder,lambda=1e-8, plot=TRUE)
+par(mfrow=c(3,1))
+plot(out$afunction, type="l")  
+lines(alpha, col="blue")
+plot(out$bfunction, type="l")  
+lines(beta, col="blue")
+plot(out$abfunction, type="l")  
+lines(alpha*beta, col="blue")
 ```
 
 ```{r }
 library(fda)
-# Stage 1. Mediator prediction
+# Mediator prediction. 
 
+# Two-step function-on-scalar regression
 fitS1.fosr2s <- fosr2s(Y = M_obs, design_M, argvals = seq(0, 1, , ncol(M_obs)), 
     nbasis = 15, norder = 4, basistype = "bspline")
 plot.fosr(fitS1.fosr2s)
@@ -139,59 +137,57 @@ plot(M_obs[1,], xlim = c(1,ncol(M_obs)), ylim = range(M_obs, na.rm=TRUE), main =
 for (i in 2:nrow(M)){ 
     lines(M_obs[i,], col=rgb((200*Z[i]+1),1,1, 30, maxColorValue=255))
   }
-lines(beta, col="blue")
 
-# plot predicted mediators
-plot(hat_M_fosr2s[1,], xlim = c(1,ncol(hat_M_fosr2s)), ylim = range(hat_M_fosr2s, na.rm=TRUE), main = "Mediator Functions \n Predicted", ylab = "Intensity", col = rgb((200*Z[1]+1),1,1, 30, maxColorValue = 255), type = "l")
-for (i in 2:nrow(M)){ 
-    lines(hat_M_fosr2s[i,], col=rgb((200*Z[i]+1),1,1, 30, maxColorValue=255))
-  }
-lines(beta, col="blue")
+# Plot alpha function
+plot(fitS1.fosr2s$est[,2], type="l")
+lines(alpha, col="blue")
 
-# plot true mediators
-plot(M[1,], xlim = c(1,ncol(M)), ylim = range(M, na.rm=TRUE), main = "Mediator Functions \n True", ylab = "Intensity", col = rgb((200*Z[1]+1),1,1, 30, maxColorValue = 255), type = "l")
-for (i in 2:nrow(M)){ 
-    lines(M[i,], col=rgb((200*Z[i]+1),1,1, 30, maxColorValue=255))
-  }
-lines(beta, col="blue")
+# Function-on-scalar regression
+fitS1.fosr <- fosr(Y = M_obs, X=design_M, argvals = seq(0, 1, , ncol(M_obs)), method = "mix")
+plot.fosr(fitS1.fosr)
+
+# Plot alpha function
+plot(fitS1.fosr$est[,2], type="l")
+lines(alpha, col="blue")
 
 # Functional regression using beta as multiple scalar covariates
-# Does not work, singular XtX: (fitS2.lm <- lm(Y_obs ~ Z + demean(hat_M_fosr2s)))
-# Doing lm with generalized Moore-Penrose Inverse
 require(MASS)
 require(boot)
 
 lm_MP <- function(data,indices){
               Y_obs    <- as.vector(data[indices,"Y_obs"])
               design   <- as.matrix(data[indices,-1])
-              estimate <- ginv(crossprod(design))%*%crossprod(design,Y_obs)
+              estimate <- solve(crossprod(design))%*%crossprod(design,Y_obs)
               return(estimate)  
               }
 
-design.fosr2s        <- cbind(int=1,Z=Z,M=demean(hat_M_fosr2s))
-fitS2.MP             <- ginv(crossprod(design.fosr2s))%*%crossprod(design.fosr2s,Y_obs)
-data2boot            <- data.frame(Y_obs, design.fosr2s)
+design               <- cbind(int=1,Z=Z,M=demean(M_obs))
+fitS2.MP             <- solve(crossprod(design))%*%crossprod(design,Y_obs)
+data2boot            <- data.frame(Y_obs, design)
 set.seed(2093402)
 fitS2.MP.boot.out    <- boot(data=data2boot, statistic=lm_MP, strata=data2boot$Z,R=5000) 
 fitS2.MP.boot.CI     <- sapply(1:length(fitS2.MP), function(i) boot.ci(fitS2.MP.boot.out, index=i, conf=0.95, type="perc")$percent[4:5])
 
-
-# Penalized functional regression
-fit.face <- pfr(Y=Y_obs, funcs=demean(hat_M_fosr2s), covariates=cbind(1, Z=Z), kz=15, kb=10,nbasis=10,smooth.option="fpca.face")
-fit.sc <- pfr(Y=Y_obs, funcs=demean(hat_M_fosr2s), covariates=cbind(1,Z=Z), kz=15, kb=10,nbasis=10,smooth.option="fpca.sc")
-
-# Plots
 matplot(cbind(fitS2.MP,t(fitS2.MP.boot.CI))[-(1:2),], type='l', lty=c(1,2,2), col=c(1,2,2), ylab="BetaHat", ylim=range(c(beta,cbind(fitS2.MP,t(fitS2.MP.boot.CI))[-(1:2),])))
-lines(beta, col="blue")
-
-matplot(cbind(fit.face$BetaHat[[1]], fit.face$Bounds[[1]]),
-  type = 'l', lty = c(1,2,2), col = c(1,2,2), ylab = "BetaHat")
-lines(beta, col="blue")
-
-matplot(cbind(fit.sc$BetaHat[[1]], fit.sc$Bounds[[1]]),
-  type = 'l', lty = c(1,2,2), col = c(1,2,2), ylab = "BetaHat")
 lines(beta, col="blue")
 
 # Estimates of the direct effect
 cbind(cbind(fitS2.MP,t(fitS2.MP.boot.CI))[1:2,], c(delta_2, gamma))
+
+
+# Penalized functional regression
+fit.face <- pfr(Y=Y_obs, funcs=list(M_obs), covariates=cbind(1, Z=Z),kb=40, nbasis=26, smooth.option="fpca.face", pve=0.99)
+matplot(cbind(fit.face$BetaHat[[1]], fit.face$Bounds[[1]]),
+  type = 'l', lty = c(1,2,2), col = c(1,2,2), ylab = "BetaHat")
+lines(beta, col="blue")
+
+
+fit.sc <- pfr(Y=Y_obs, funcs=demean(M_obs), covariates=cbind(1,Z=Z),kb=50, nbasis=20,smooth.option="fpca.sc", pve=0.99)
+
+matplot(cbind(fit.sc$BetaHat[[1]], fit.sc$Bounds[[1]]),
+  type = 'l', lty = c(1,2,2), col = c(1,2,2), ylab = "BetaHat")
+lines(beta, col="blue")
 ```
+
+
+Next step: try changing GAM method of estimation. The function is too smooth, and we can change to Generalized Cross Validation and choose a smoothing parameter
