@@ -50,7 +50,7 @@ score.sds   <- round(sqrt(apply(scores, 2, var)),1)
 l2_sd       <- 0      # Size of interaction effect (X*Z on M)
 l1_wrt_2    <- 0.6    # Comparison of l1 size with respect l2
 seed_num    <- 10
-peak_beta   <- 5/dnorm(0, mean = 0, sd = 0.5)  # Take the peak of a normal at z=0, scale to have an effect of 5
+peak_beta   <- 10/dnorm(0, mean = 0, sd = 0.5)  # Take the peak of a normal at z=0, scale to have an effect of 5
 sd_epsilon  <- 1
 sd_eta      <- 1
 
@@ -83,7 +83,7 @@ M_obs    <- M+epsilon
 ## No confounding scenario:
 
 delta_2  <- 5
-gamma    <- 3
+gamma    <- 2
 
 beta     <- dnorm(seq(-3.5,6.5,length.out=n_timepts), mean = 0, sd = 0.5)*peak_beta
 
@@ -111,6 +111,8 @@ hist(crossprod(t(M_obs),beta))
 
 ```{r}
 out  = fMediation_ML(Z,Y_obs,t(M_obs),nbasis=30,norder=6,lambda=1e-8, plot=TRUE)
+
+
 
 par(mfrow=c(3,1))
 plot(out$afunction, type="l")  
@@ -168,26 +170,57 @@ set.seed(2093402)
 fitS2.MP.boot.out    <- boot(data=data2boot, statistic=lm_MP, strata=data2boot$Z,R=5000) 
 fitS2.MP.boot.CI     <- sapply(1:length(fitS2.MP), function(i) boot.ci(fitS2.MP.boot.out, index=i, conf=0.95, type="perc")$percent[4:5])
 
-matplot(cbind(fitS2.MP,t(fitS2.MP.boot.CI))[-(1:2),], type='l', lty=c(1,2,2), col=c(1,2,2), ylab="BetaHat", ylim=range(c(beta,cbind(fitS2.MP,t(fitS2.MP.boot.CI))[-(1:2),])))
-lines(beta, col="blue")
+matplot(cbind(fitS2.MP,t(fitS2.MP.boot.CI))[-(1:2),], type='l', lty=c(1,2,2), col=c(1,2,2), ylab="BetaHat", ylim=range(c(beta*1/(ncol(M_obs)-1),cbind(fitS2.MP,t(fitS2.MP.boot.CI))[-(1:2),])))
+lines(beta*1/(ncol(M_obs)-1), col="blue")
 
 # Estimates of the direct effect
 cbind(cbind(fitS2.MP,t(fitS2.MP.boot.CI))[1:2,], c(delta_2, gamma))
 
 
 # Penalized functional regression
-fit.face <- pfr(Y=Y_obs, funcs=list(M_obs), covariates=cbind(1, Z=Z),kb=40, nbasis=26, smooth.option="fpca.face", pve=0.99)
+fit.face <- pfr(Y=Y_obs, funcs=list(M_obs), covariates=cbind(1, Z=Z),kb=40, nbasis=26, smooth.option="fpca.face", pve=0.99, method="REML")
 matplot(cbind(fit.face$BetaHat[[1]], fit.face$Bounds[[1]]),
   type = 'l', lty = c(1,2,2), col = c(1,2,2), ylab = "BetaHat")
-lines(beta, col="blue")
+lines(beta*1/(ncol(M_obs)-1), col="blue")
 
 
-fit.sc <- pfr(Y=Y_obs, funcs=demean(M_obs), covariates=cbind(1,Z=Z),kb=50, nbasis=20,smooth.option="fpca.sc", pve=0.99)
+fit.sc <- pfr(Y=Y_obs, funcs=demean(M_obs), covariates=cbind(1,Z=Z),kb=50, nbasis=20,smooth.option="fpca.sc", pve=0.99, method="REML")
 
 matplot(cbind(fit.sc$BetaHat[[1]], fit.sc$Bounds[[1]]),
   type = 'l', lty = c(1,2,2), col = c(1,2,2), ylab = "BetaHat")
-lines(beta, col="blue")
+lines(beta*1/(ncol(M_obs)-1), col="blue")
 ```
 
 
 Next step: try changing GAM method of estimation. The function is too smooth, and we can change to Generalized Cross Validation and choose a smoothing parameter
+
+```{r}
+# Another take on penalized functional regression
+require(mgcv)
+fit <- fgam(Y_obs ~ Z + lf(M_obs))
+predictions <- predict(fit)
+
+newdata <- data.frame(M_obs.tmat = seq(0,1,length=23), L.M_obs = seq(0,1,length=23))
+sm <- fit$smooth[[1]]
+plot(PredictMat(sm, newdata)%*%fit$coef[-(1:2)], type="l")
+lines(beta*1/(ncol(M_obs)-1), col="blue")
+```
+
+I think I am not predicting the coefficients well. 
+
+```{r}
+# Penalized functional regression with Generalized cross-validation
+par(mfrow=c(1,2))
+fit.face <- pfr(Y=Y_obs, funcs=list(M_obs), covariates=cbind(1, Z=Z),kb=40, nbasis=26, smooth.option="fpca.face", pve=0.99, method="GCV.Cp")
+matplot(cbind(fit.face$BetaHat[[1]], fit.face$Bounds[[1]]),
+  type = 'l', lty = c(1,2,2), col = c(1,2,2), ylab = "BetaHat")
+lines(beta*1/(ncol(M_obs)-1), col="blue")
+
+
+fit.sc <- pfr(Y=Y_obs, funcs=demean(M_obs), covariates=cbind(1,Z=Z),kb=50, nbasis=20,smooth.option="fpca.sc", pve=0.99, method="GCV.Cp")
+
+matplot(cbind(fit.sc$BetaHat[[1]], fit.sc$Bounds[[1]]),
+  type = 'l', lty = c(1,2,2), col = c(1,2,2), ylab = "BetaHat")
+lines(beta*1/(ncol(M_obs)-1), col="blue")
+```
+The results are similar
