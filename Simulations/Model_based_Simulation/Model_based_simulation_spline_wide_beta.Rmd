@@ -37,7 +37,7 @@ alpha_coef = c(rep(0,10), runif(10,1,4), rep(0,10))
 alpha      = eval.bspline%*%alpha_coef
 
 # Create beta
-beta_coef = c(rep(0,10), rep(1,10), rep(0,10)) 
+beta_coef = c(rep(0,10), rep(3,10), rep(0,10)) 
 beta      = eval.bspline%*%beta_coef
 
 matplot(cbind(delta1, alpha, beta), type="l")
