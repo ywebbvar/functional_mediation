@@ -1,0 +1,249 @@
+---
+title: "Revisiting old simulation, trying out fMediation_ML using box car beta"
+author: "Yenny Webb-Vargas"
+date: "Wednesday, October 22, 2014"
+output: html_document
+---
+
+My data.
+
+```{r}
+library(refund)
+library(RColorBrewer, warn.conflicts = FALSE)
+qualpalette <- brewer.pal(8,"Set2")
+
+library(boot)
+source('~/GitHub/functional_mediation/fMediation_ML.R')
+```
+
+```{r HRF}
+short_HRF <- read.table("C:/Users/Yenny/Dropbox/2012 Research/Mediation_Research/Data_experiment/YennyHRF")
+HRF <- c(rep(0,5), as.numeric(short_HRF)[2*(1:10)],rep(0,8))
+```
+
+```{r demeans}
+demean <- function(mat) mat - matrix(colMeans(mat), ncol=ncol(mat), nrow=nrow(mat), byrow=TRUE)
+CI_95 <- function(mean, sd) mean + qnorm(c(0.025,0.975))*sd
+```
+
+```{r}
+source('C:/Users/Yenny/Dropbox/2012 Research/Mediation_Research/Data_experiment/20130805_simulation_fRPM/20130805_simulation_fRPM_Only_PCs.R')
+```
+
+
+Trial 1. 
+----------------------
+  This set up has:
+  - Standard deviations for mediator and outcome of 1
+- An effect of the mediator that is large (gaussian form with peak = 5)
+- Treatment effect of 3
+- Parameters for mediator that incorporate all the PCs
+
+
+```{r simul_data}
+Phi_mat   <- PCs
+n_timepts <- nrow(PCs)
+n_bases   <- ncol(PCs)
+score.sds   <- round(sqrt(apply(scores, 2, var)),1)
+
+## 0. Create uber parameters: 
+l2_sd       <- 0      # Size of interaction effect (X*Z on M)
+l1_wrt_2    <- 0.6    # Comparison of l1 size with respect l2
+seed_num    <- 10
+sd_epsilon  <- 1
+sd_eta      <- 1
+
+## 1. Create parameters: covariate and treatment effects
+set.seed(4953011+seed_num)
+d1_vector <- sapply(score.sds, function(x) rnorm(1,mean=0, sd=x))
+
+delta_1  <- (Phi_mat[,1:10]%*%d1_vector[1:10])+abs(min((Phi_mat[,1:10]%*%d1_vector[1:10])))
+alpha    <- HRF*5
+
+plot(delta_1, ylim=range(cbind(delta_1,alpha)) ,type="n")
+lines(delta_1, col=qualpalette[1])
+lines(alpha, col=qualpalette[2])
+
+## 2. Generate potential mediators
+
+n <- 100
+
+X        <- rnorm(n, 1,1)
+Z        <- rbinom(n,1,0.5)
+epsilon  <- matrix(rnorm(n*n_timepts,0,sd_epsilon), ncol=n_timepts,nrow=(n))
+
+design_M <- cbind(int=1,Z=Z)
+coeff_M  <- cbind(delta_1,alpha)
+colnames(coeff_M) <- c("delta_1","alpha")
+
+M        <- t(tcrossprod(coeff_M, design_M))
+M_obs    <- M+epsilon
+
+## No confounding scenario:
+
+delta_2  <- 5
+gamma    <- 2
+
+beta     <- c(rep(0,5), rep(1,6), rep(0,12))*3 #This creates an area similar to the one due to the normal distribution 
+#  dnorm(seq(-3.5,6.5,length.out=n_timepts), mean = 0, sd = 0.5)*10
+
+set.seed(5048191+seed_num)
+eta      <- rnorm(n, 0, sd_eta) 
+
+
+design_M_Y <- cbind(int=1,Z=Z,M_obs=M_obs)
+coeff_M_Y  <- cbind(delta_2,gamma, t(beta)*1/(ncol(M_obs)-1))
+
+Y_obs    <- t(tcrossprod(coeff_M_Y, design_M_Y)) + eta
+Y_obs    <- as.numeric(Y_obs)
+
+plot(M_obs[1,], xlim = c(1,ncol(M_obs)), ylim = range(M_obs, na.rm=TRUE), main = "Mediator Functions \n with Errors", ylab = "Intensity", col = rgb((200*Z[1]+1),1,1, 30, maxColorValue = 255), type = "l")
+for (i in 2:nrow(M)){ 
+  lines(M_obs[i,], col=rgb((200*Z[i]+1),1,1, 30, maxColorValue=255))
+}
+lines(beta, col="blue")
+
+hist(Y_obs)
+boxplot(Y_obs~Z)
+
+hist(crossprod(t(M_obs),beta))
+```
+
+```{r}
+out  = fMediation_ML(Z,Y_obs,t(M_obs),nbasis=30,norder=6,lambda=1e-8, plot=TRUE)
+
+
+
+par(mfrow=c(3,1))
+plot(out$afunction, type="l")  
+lines(alpha, col="blue")
+plot(out$bfunction, type="l")  
+lines(beta, col="blue")
+plot(out$abfunction, type="l")  
+lines(alpha*beta, col="blue")
+```
+
+```{r }
+library(fda)
+# Mediator prediction. 
+
+# Two-step function-on-scalar regression
+fitS1.fosr2s <- fosr2s(Y = M_obs, design_M, argvals = seq(0, 1, , ncol(M_obs)), 
+    nbasis = 15, norder = 4, basistype = "bspline")
+plot.fosr(fitS1.fosr2s)
+
+hat_M_fosr2s <- fitS1.fosr2s$yhat
+
+# plot Observed mediators
+plot(M_obs[1,], xlim = c(1,ncol(M_obs)), ylim = range(M_obs, na.rm=TRUE), main = "Mediator Functions \n with Errors", ylab = "Intensity", col = rgb((200*Z[1]+1),1,1, 30, maxColorValue = 255), type = "l")
+for (i in 2:nrow(M)){ 
+    lines(M_obs[i,], col=rgb((200*Z[i]+1),1,1, 30, maxColorValue=255))
+  }
+
+# Plot alpha function
+plot(fitS1.fosr2s$est[,2], type="l")
+lines(alpha, col="blue")
+
+# Function-on-scalar regression
+fitS1.fosr <- fosr(Y = M_obs, X=design_M, argvals = seq(0, 1, , ncol(M_obs)), method = "OLS", nbasis=15, norder=4)
+plot.fosr(fitS1.fosr)
+
+# Plot alpha function
+plot(fitS1.fosr$est[,2], type="l")
+lines(alpha, col="blue")
+
+# Functional regression using beta as multiple scalar covariates
+require(MASS)
+require(boot)
+
+lm_MP <- function(data,indices){
+              Y_obs    <- as.vector(data[indices,"Y_obs"])
+              design   <- as.matrix(data[indices,-1])
+              estimate <- solve(crossprod(design))%*%crossprod(design,Y_obs)
+              return(estimate)  
+              }
+
+design               <- cbind(int=1,Z=Z,M=demean(M_obs))
+fitS2.MP             <- solve(crossprod(design))%*%crossprod(design,Y_obs)
+data2boot            <- data.frame(Y_obs, design)
+set.seed(2093402)
+fitS2.MP.boot.out    <- boot(data=data2boot, statistic=lm_MP, strata=data2boot$Z,R=5000) 
+fitS2.MP.boot.CI     <- sapply(1:length(fitS2.MP), function(i) boot.ci(fitS2.MP.boot.out, index=i, conf=0.95, type="perc")$percent[4:5])
+
+matplot(cbind(fitS2.MP,t(fitS2.MP.boot.CI))[-(1:2),], type='l', lty=c(1,2,2), col=c(1,2,2), ylab="BetaHat", ylim=range(c(beta*1/(ncol(M_obs)-1),cbind(fitS2.MP,t(fitS2.MP.boot.CI))[-(1:2),])))
+lines(beta*1/(ncol(M_obs)-1), col="blue")
+
+# Estimates of the direct effect
+cbind(cbind(fitS2.MP,t(fitS2.MP.boot.CI))[1:2,], c(delta_2, gamma))
+
+
+# Penalized functional regression
+fit.face <- pfr(Y=Y_obs, funcs=list(M_obs), covariates=cbind(1, Z=Z),kb=40, nbasis=26, smooth.option="fpca.face", pve=0.99, method="REML")
+matplot(cbind(fit.face$BetaHat[[1]], fit.face$Bounds[[1]]),
+  type = 'l', lty = c(1,2,2), col = c(1,2,2), ylab = "BetaHat")
+lines(beta*1/(ncol(M_obs)-1), col="blue")
+
+
+fit.sc <- pfr(Y=Y_obs, funcs=demean(M_obs), covariates=cbind(1,Z=Z),kb=50, nbasis=20,smooth.option="fpca.sc", pve=0.99, method="REML")
+
+matplot(cbind(fit.sc$BetaHat[[1]], fit.sc$Bounds[[1]]),
+  type = 'l', lty = c(1,2,2), col = c(1,2,2), ylab = "BetaHat")
+lines(beta*1/(ncol(M_obs)-1), col="blue")
+```
+
+I think I am not predicting the coefficients well. 
+
+```{r}
+# Penalized functional regression with Generalized cross-validation
+par(mfrow=c(1,2))
+fit.face <- pfr(Y=Y_obs, funcs=list(M_obs), covariates=cbind(1, Z=Z),kb=40, nbasis=26, smooth.option="fpca.face", pve=0.99, method="GCV.Cp")
+matplot(cbind(fit.face$BetaHat[[1]], fit.face$Bounds[[1]]),
+  type = 'l', lty = c(1,2,2), col = c(1,2,2), ylab = "BetaHat")
+lines(beta*1/(ncol(M_obs)-1), col="blue")
+
+
+fit.sc <- pfr(Y=Y_obs, funcs=demean(M_obs), covariates=cbind(1,Z=Z),kb=50, nbasis=20,smooth.option="fpca.sc", pve=0.99, method="GCV.Cp")
+
+matplot(cbind(fit.sc$BetaHat[[1]], fit.sc$Bounds[[1]]),
+  type = 'l', lty = c(1,2,2), col = c(1,2,2), ylab = "BetaHat")
+lines(beta*1/(ncol(M_obs)-1), col="blue")
+```
+The results are similar
+
+
+Next step: try changing GAM method of estimation. The function is too smooth, and we can change to Generalized Cross Validation and choose a smoothing parameter
+
+```{r}
+# Another take on penalized functional regression
+require(mgcv)
+# Fits a smooth object with 7 basis and normal cubic spline penalty with 2nd derivatives
+fit <- fgam(Y_obs ~ Z + lf(M_obs,splinepars=list(k=25,m=c(3,2))))
+predictions <- predict(fit)
+plot(fit)
+lines(seq(0,1,length=23), beta, col="blue")
+
+newdata <- data.frame(M_obs.tmat = seq(0,1,length=23), L.M_obs = seq(1,1,length=23))
+sm <- fit$smooth[[1]]
+plot(PredictMat(sm, newdata)%*%fit$coef[-(1:2)], type="l")
+lines(beta, col="blue")
+```
+
+
+```{r}
+par(mfrow=c(2,2))
+plot(out$bfunction, type="l", main="fRegress")  
+lines(beta, col="blue")
+
+plot(PredictMat(sm, newdata)%*%fit$coef[-(1:2)], type="l", main="fgam")
+lines(beta, col="blue")
+
+matplot(cbind(fit.face$BetaHat[[1]], fit.face$Bounds[[1]]),
+  type = 'l', lty = c(1,2,2), col = c(1,2,2), ylab = "BetaHat", main="face")
+lines(beta*1/(ncol(M_obs)-1), col="blue")
+
+matplot(cbind(fit.sc$BetaHat[[1]], fit.sc$Bounds[[1]]),
+  type = 'l', lty = c(1,2,2), col = c(1,2,2), ylab = "BetaHat", main="SC")
+lines(beta*1/(ncol(M_obs)-1), col="blue")
+```
+
+The result from `fRegress` looks as the result from `fgam`. I prefer `fRegress`. Whereas the results from the `pfr` are not as good, and they take much more time to fit.
