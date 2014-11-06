@@ -191,21 +191,6 @@ matplot(cbind(fit.sc$BetaHat[[1]], fit.sc$Bounds[[1]]),
 lines(beta*1/(ncol(M_obs)-1), col="blue")
 ```
 
-
-Next step: try changing GAM method of estimation. The function is too smooth, and we can change to Generalized Cross Validation and choose a smoothing parameter
-
-```{r}
-# Another take on penalized functional regression
-require(mgcv)
-fit <- fgam(Y_obs ~ Z + lf(M_obs))
-predictions <- predict(fit)
-
-newdata <- data.frame(M_obs.tmat = seq(0,1,length=23), L.M_obs = seq(0,1,length=23))
-sm <- fit$smooth[[1]]
-plot(PredictMat(sm, newdata)%*%fit$coef[-(1:2)], type="l")
-lines(beta*1/(ncol(M_obs)-1), col="blue")
-```
-
 I think I am not predicting the coefficients well. 
 
 ```{r}
@@ -224,3 +209,41 @@ matplot(cbind(fit.sc$BetaHat[[1]], fit.sc$Bounds[[1]]),
 lines(beta*1/(ncol(M_obs)-1), col="blue")
 ```
 The results are similar
+
+
+Next step: try changing GAM method of estimation. The function is too smooth, and we can change to Generalized Cross Validation and choose a smoothing parameter
+
+```{r}
+# Another take on penalized functional regression
+require(mgcv)
+# Fits a smooth object with 7 basis and normal cubic spline penalty with 2nd derivatives
+fit <- fgam(Y_obs ~ Z + lf(M_obs,splinepars=list(k=25,m=c(3,2))))
+predictions <- predict(fit)
+plot(fit)
+lines(seq(0,1,length=23), beta, col="blue")
+
+newdata <- data.frame(M_obs.tmat = seq(0,1,length=23), L.M_obs = seq(1,1,length=23))
+sm <- fit$smooth[[1]]
+plot(PredictMat(sm, newdata)%*%fit$coef[-(1:2)], type="l")
+lines(beta, col="blue")
+```
+
+
+```{r}
+par(mfrow=c(2,2))
+plot(out$bfunction, type="l", main="fRegress")  
+lines(beta, col="blue")
+
+plot(PredictMat(sm, newdata)%*%fit$coef[-(1:2)], type="l", main="fgam")
+lines(beta, col="blue")
+
+matplot(cbind(fit.face$BetaHat[[1]], fit.face$Bounds[[1]]),
+  type = 'l', lty = c(1,2,2), col = c(1,2,2), ylab = "BetaHat", main="face")
+lines(beta*1/(ncol(M_obs)-1), col="blue")
+
+matplot(cbind(fit.sc$BetaHat[[1]], fit.sc$Bounds[[1]]),
+  type = 'l', lty = c(1,2,2), col = c(1,2,2), ylab = "BetaHat", main="SC")
+lines(beta*1/(ncol(M_obs)-1), col="blue")
+```
+
+The result from `fRegress` looks as the result from `fgam`. I prefer `fRegress`. Whereas the results from the `pfr` are not as good, and they take much more time to fit.
