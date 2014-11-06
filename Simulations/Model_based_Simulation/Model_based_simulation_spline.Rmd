@@ -1,0 +1,30 @@
+---
+title: "Setting simulation"
+author: "Yenny Webb-Vargas"
+date: "Friday, October 31, 2014"
+output: html_document
+---
+
+In this document, I set up the simulation I use for the paper 'Functional Mediation Analysis'
+
+```{r}
+library(fda)
+library(refund)
+```
+
+```{r}
+len     = 30
+T_sup   = 1
+timevec = seq(0,T_sup, length.out=len)
+  
+# Create bspline basis set
+basis = create.bspline.basis(rangeval = c(0,T_sup), nbasis = 30, norder=6)
+
+# Create delta
+eval.bspline = eval.basis(timevec, basis)
+# Create alpha
+
+# Create beta
+
+```
+
