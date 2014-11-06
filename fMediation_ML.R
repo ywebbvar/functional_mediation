@@ -57,7 +57,7 @@ fMediation_ML <- function(x,y,m,mediatorMethod="fosr2s", nbasis,norder,lambda=1e
   betafd1       = fd(matrix(0,nrow=nbasis, ncol=1), betabasis)
   betacell[[1]] = fdPar(betafd1)
   betafdj       = fd(matrix(0,nrow=nbasis, ncol=1), betabasis)
-  betacell[[2]] =fdPar(betafdj)
+  betacell[[2]] = fdPar(betafdj)
   
   if(mediatorMethod=="fRegress"){
     # Solve least-squares equation
