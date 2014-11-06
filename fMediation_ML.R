@@ -148,6 +148,9 @@ fMediation_ML <- function(x,y,m,mediatorMethod="fosr2s", nbasis,norder,lambda=1e
   
   tmp = eval.fd(tfine, betaestcell[[3]]$fd) # c'-path
   cp  = tmp[1]
+  
+  tmp = eval.fd(tfine, betaestcell[[1]]$fd) # intercept
+  int  = tmp[1]
 
   # Plot results
   if(plot==TRUE){
@@ -165,7 +168,7 @@ fMediation_ML <- function(x,y,m,mediatorMethod="fosr2s", nbasis,norder,lambda=1e
   }
   #plot(x,y)
   
-  if(boot==FALSE) {result = list('afunction' = af, 'a' = a, 'bfunction' = bf, 'abfunction' = abf, 'b' = b, 'ab' = ab, 'c' = c, 'x' = x, 'y' = y, 'm' = m,'tfine' = tfine,'b_stderr' = b_stderr,'ResM'= ResM,'ResY'= ResY)
+  if(boot==FALSE) {result = list('afunction' = af, 'a' = a, 'bfunction' = bf, 'abfunction' = abf, 'b' = b, 'ab' = ab, 'cp' = cp, 'Y_intercept' = int, 'x' = x, 'y' = y, 'm' = m,'tfine' = tfine,'b_stderr' = b_stderr,'ResM'= ResM,'ResY'= ResY)
   }else{
     result = abf
   }
