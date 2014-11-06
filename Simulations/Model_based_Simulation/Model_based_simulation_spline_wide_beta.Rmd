@@ -23,9 +23,8 @@ basis        = create.bspline.basis(rangeval = c(0,T_sup), nbasis = 30, norder=6
 eval.bspline = eval.basis(seq(0,1,length.out=len), basis)
 ```
 
-
-```{r gen_pars}
 ## 1. Create parameters: covariate and treatment effects
+```{r gen_pars}
 # Create delta
 set.seed(2903)
 delta1_coef = c(rep(0,5), runif(5,-2,0), runif(10,0,2),rep(0,10)) 
@@ -43,9 +42,8 @@ beta      = eval.bspline%*%beta_coef
 matplot(cbind(delta1, alpha, beta), type="l")
 ```
 
-```{r gen_data}
 ## 2. Generate mediators
-
+```{r gen_data}
 set.seed(3201023)
 n          = 100
 sd_epsilon = 1
@@ -67,11 +65,11 @@ lines(beta, col=rgb(0,0,255, 250, maxColorValue=255))
 legend("topright", c("beta", "treated", "control"), col=c(rgb(0,0,255, 250, maxColorValue=255), rgb((201),1,1, 255, maxColorValue=255), rgb(1,1,1, 255, maxColorValue=255)), lty=1)
 
 hist(crossprod(t(M_obs),beta*1/(ncol(M_obs)-1)), main="Contributions from each mediator\n to Y_obs")
-
+```
 
 ## 3. Generate outcome.
-# No confounding scenario:
-
+No confounding scenario:
+```{r}
 delta2 = 5
 gamma  = 2
 sd_eta = 1
@@ -88,6 +86,9 @@ hist(Y_obs)
 boxplot(Y_obs~Z, main="Boxplot of Y_obs by trt")
 ```
 
+# Fitting mediation models
+
+## Using `fRegress` for both mediator and outcome model
 ```{r fRegress}
 out  = fMediation_ML(Z,Y_obs,t(M_obs),mediatorMethod="fRegress", nbasis=50,norder=6,lambda=1e-8, plot=TRUE)
 
@@ -100,6 +101,7 @@ plot(out$abfunction, type="l")
 lines(alpha*beta, col="blue")
 ```
 
+## Using `fosr2s` for mediator model, and `fRegress` for outcome model
 ```{r fosr2s}
 out2  = fMediation_ML(Z,Y_obs,t(M_obs),mediatorMethod="fosr2s", nbasis=50,norder=6,lambda=1e-8, plot=TRUE)
 
@@ -112,15 +114,18 @@ plot(out2$abfunction, type="l")
 lines(alpha*beta, col="blue")
 ```
 
-
-```{r pfr}
+## Using `pfr` with smooth option `face` in outcome model
+```{r pfr_face}
 # Penalized functional regression
 fit.face <- pfr(Y=Y_obs, funcs=list(M_obs), covariates=cbind(1, Z=Z),kb=40, nbasis=26, smooth.option="fpca.face", pve=0.99, method="REML")
 matplot(cbind(fit.face$BetaHat[[1]], fit.face$Bounds[[1]]),
   type = 'l', lty = c(1,2,2), col = c(1,2,2), ylab = "BetaHat")
 lines(beta*1/(ncol(M_obs)-1), col="blue")
 
+```
 
+## Using `pfr` with smooth option `sc` in outcome model
+```{r pfr_sc}
 fit.sc <- pfr(Y=Y_obs, funcs=M_obs, covariates=cbind(1,Z=Z),kb=50, nbasis=20,smooth.option="fpca.sc", pve=0.99, method="REML")
 
 matplot(cbind(fit.sc$BetaHat[[1]], fit.sc$Bounds[[1]]),
@@ -128,6 +133,7 @@ matplot(cbind(fit.sc$BetaHat[[1]], fit.sc$Bounds[[1]]),
 lines(beta*1/(ncol(M_obs)-1), col="blue")
 ```
 
+## Using `fgam` in outcome model
 ```{r fgam}
 # Another take on penalized functional regression
 require(mgcv)
@@ -143,6 +149,8 @@ plot(PredictMat(sm, newdata)%*%fit$coef[-(1:2)], type="l")
 lines(beta, col="blue")
 ```
 
+# Comparison
+## Plot comparing four methods for outcome model
 ```{r final_plot}
 par(mfrow=c(2,2))
 plot(out$bfunction, type="l", main="fRegress")  
@@ -160,6 +168,7 @@ matplot(cbind(fit.sc$BetaHat[[1]], fit.sc$Bounds[[1]]),
 lines(beta*1/(ncol(M_obs)-1), col="blue")
 ```
 
+##Estimates of the direct effect and intercept in outcome model
 ```{r final_estimates}
 rbind(hat_gamma  = cbind('true'= gamma, 'fMediation_ML' = out$cp, 
                          'fgam' = fit$coef["Z"], 
