@@ -10,6 +10,7 @@ In this document, I set up the simulation I use for the paper 'Functional Mediat
 ```{r}
 library(fda)
 library(refund)
+source('~/GitHub/functional_mediation/fMediation_ML.R')
 ```
 
 ```{r}
@@ -37,7 +38,7 @@ alpha      = eval.bspline%*%alpha_coef
 
 # Create beta
 set.seed(84930)
-beta_coef = c(rep(0,15), runif(5,2,3), rep(0,10)) 
+beta_coef = c(rep(0,15), runif(5,3,10), rep(0,10)) 
 beta      = eval.bspline%*%beta_coef
 
 matplot(cbind(delta1, alpha, beta), type="l")
@@ -86,5 +87,89 @@ Y_obs    <- as.numeric(Y_obs)
 
 hist(Y_obs)
 boxplot(Y_obs~Z, main="Boxplot of Y_obs by trt")
+```
+
+```{r fRegress}
+out  = fMediation_ML(Z,Y_obs,t(M_obs),mediatorMethod="fRegress", nbasis=50,norder=6,lambda=1e-8, plot=TRUE)
+
+par(mfrow=c(3,1))
+plot(out$afunction, type="l")  
+lines(alpha, col="blue")
+plot(out$bfunction, type="l")  
+lines(beta, col="blue")
+plot(out$abfunction, type="l")  
+lines(alpha*beta, col="blue")
+```
+
+```{r fosr2s}
+out2  = fMediation_ML(Z,Y_obs,t(M_obs),mediatorMethod="fosr2s", nbasis=50,norder=6,lambda=1e-8, plot=TRUE)
+
+par(mfrow=c(3,1))
+plot(out2$afunction, type="l")  
+lines(alpha, col="blue")
+plot(out2$bfunction, type="l")  
+lines(beta, col="blue")
+plot(out2$abfunction, type="l")  
+lines(alpha*beta, col="blue")
+```
+
+
+```{r pfr}
+# Penalized functional regression
+fit.face <- pfr(Y=Y_obs, funcs=list(M_obs), covariates=cbind(1, Z=Z),kb=40, nbasis=26, smooth.option="fpca.face", pve=0.99, method="REML")
+matplot(cbind(fit.face$BetaHat[[1]], fit.face$Bounds[[1]]),
+  type = 'l', lty = c(1,2,2), col = c(1,2,2), ylab = "BetaHat")
+lines(beta*1/(ncol(M_obs)-1), col="blue")
+
+
+fit.sc <- pfr(Y=Y_obs, funcs=M_obs, covariates=cbind(1,Z=Z),kb=50, nbasis=20,smooth.option="fpca.sc", pve=0.99, method="REML")
+
+matplot(cbind(fit.sc$BetaHat[[1]], fit.sc$Bounds[[1]]),
+  type = 'l', lty = c(1,2,2), col = c(1,2,2), ylab = "BetaHat")
+lines(beta*1/(ncol(M_obs)-1), col="blue")
+```
+
+```{r fgam}
+# Another take on penalized functional regression
+require(mgcv)
+# Fits a smooth object with 50 basis and normal cubic spline penalty with 2nd derivatives
+fit <- fgam(Y_obs ~ Z + lf(M_obs,splinepars=list(k=50,m=c(3,2))))
+predictions <- predict(fit)
+plot(fit)
+lines(seq(0,1,length=len),beta, col="blue")
+
+newdata <- data.frame(M_obs.tmat = seq(0,1,length=len), L.M_obs = seq(1,1,length=len))
+sm <- fit$smooth[[1]]
+plot(PredictMat(sm, newdata)%*%fit$coef[-(1:2)], type="l")
+lines(beta, col="blue")
+```
+
+```{r final_plot}
+par(mfrow=c(2,2))
+plot(out$bfunction, type="l", main="fRegress")  
+lines(beta, col="blue")
+
+plot(PredictMat(sm, newdata)%*%fit$coef[-(1:2)], type="l", main="fgam")
+lines(beta, col="blue")
+
+matplot(cbind(fit.face$BetaHat[[1]], fit.face$Bounds[[1]]),
+  type = 'l', lty = c(1,2,2), col = c(1,2,2), ylab = "BetaHat", main="face")
+lines(beta*1/(ncol(M_obs)-1), col="blue")
+
+matplot(cbind(fit.sc$BetaHat[[1]], fit.sc$Bounds[[1]]),
+  type = 'l', lty = c(1,2,2), col = c(1,2,2), ylab = "BetaHat", main="SC")
+lines(beta*1/(ncol(M_obs)-1), col="blue")
+```
+
+```{r final_estimates}
+rbind(hat_gamma  = cbind('true'= gamma, 'fMediation_ML' = out$cp, 
+                         'fgam' = fit$coef["Z"], 
+                         'pfr.face' = fit.face$beta.covariates["XZ"], 
+                         'pfr.sc' = fit.sc$beta.covariates["XZ"]),  
+      hat_delta2 = cbind('true' = delta2, 'fMediation_ML' = out$Y_intercept, 
+                         'fgam' = fit$coef["(Intercept)"], 
+                         'pfr.face' = fit.face$beta.covariates[2], 
+                         'pfr.sc' = fit.sc$beta.covariates[1])
+      )
 ```
 
