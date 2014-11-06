@@ -1,4 +1,4 @@
-#' Functional Mediation. Testing functionality to add functional intercept
+#' Functional Mediation.
 #' 
 #' Fits a functional mediation model. Uses fda package
 #'
@@ -6,6 +6,7 @@
 #' @param x a numeric vector with independent variable (treatment assignment)
 #' @param y a numeric vector with final outcomes
 #' @param m a (\code{T} by \code{N}) matrix with mediator values. Each columns represents one observed functional mediator.
+#' @param mediatorMethod the method for model for mediator. "fRegress" fits a model by penalized from \code{fda} package, and  "fosr2" uses two-step function-on-scalar regression from \code{refund} package
 #' @param nbasis an integer variable specifying the number of basis functions. Argument for \code{\link[fda]{create.bspline.basis}}
 #' @param norder an integer specifying the order of b-splines, which is one higher than their degree. Argument for \code{\link[fda]{create.bspline.basis}}
 #' @param lambda a nonnegative real number specifying the amount of smoothing to be applied to the estimated functional parameters.
@@ -21,10 +22,10 @@
 #' @examples
 #' fMediation_ML(x,y,m,...)
 
-fMediation_ML <- function(x,y,m,nbasis,norder,lambda=1e-8,pen=0.1, plot=FALSE, boot=FALSE){
+fMediation_ML <- function(x,y,m,mediatorMethod="fosr2s", nbasis,norder,lambda=1e-8,pen=0.1, plot=FALSE, boot=FALSE){
   
-  require(fda)
-
+  require(refund)
+  
   len   = dim(m)[1]
   N     = dim(m)[2]
   T_sup = 1
@@ -58,27 +59,40 @@ fMediation_ML <- function(x,y,m,nbasis,norder,lambda=1e-8,pen=0.1, plot=FALSE, b
   betafdj       = fd(matrix(0,nrow=nbasis, ncol=1), betabasis)
   betacell[[2]] =fdPar(betafdj)
   
-  # Solve least-squares equation
-  fRegressCell = fRegress(mfdPar, xfdcell, betacell)
-  betaestcell  = fRegressCell[[4]]
-  afun         = betaestcell[[2]]$fd
-  
-  tfine = seq(0,T_sup, length.out=len)
-  af    = eval.fd(tfine,afun)
-  a     = sum(af)*(tfine[2] - tfine[1])
-  
-  ResM  = (m - eval.fd(tfine, fRegressCell[[5]]$fd))
-  
-  # Calculate Standard Error
-  errmat     = m - eval.fd(tfine, fRegressCell[[5]]$fd)
-  Sigma      = errmat%*%t(errmat)/N  # Originally, there was a 20 here, I assume it is the number of observations N
-  DfdPar     = fdPar(basis, 0, 1)
-  y2cMap     = smooth.basis(timevec,m,DfdPar)$y2cMap
-  stderrCell = fRegress.stderr(fRegressCell, y2cMap, Sigma)
-  tmp        = stderrCell[[1]]
-  
-  a_stderr = eval.fd(tfine, tmp[[2]]) # Std Error of a-function
-  #plotbeta(betaestlist = fRegressCell$betaestlist, betastderrlist = stderrCell$betastderrlist)
+  if(mediatorMethod=="fRegress"){
+    # Solve least-squares equation
+    fRegressCell = fRegress(mfdPar, xfdcell, betacell)
+    betaestcell  = fRegressCell[[4]]
+    afun         = betaestcell[[2]]$fd
+    
+    tfine = seq(0,T_sup, length.out=len)
+    af    = eval.fd(tfine,afun)
+    a     = sum(af)*(tfine[2] - tfine[1])
+    
+    ResM  = (m - eval.fd(tfine, fRegressCell[[5]]$fd))
+    
+    # Calculate Standard Error
+    errmat     = m - eval.fd(tfine, fRegressCell[[5]]$fd)
+    Sigma      = errmat%*%t(errmat)/N  # Originally, there was a 20 here, I assume it is the number of observations N
+    DfdPar     = fdPar(basis, 0, 1)
+    y2cMap     = smooth.basis(timevec,m,DfdPar)$y2cMap
+    stderrCell = fRegress.stderr(fRegressCell, y2cMap, Sigma)
+    tmp        = stderrCell[[1]]
+    
+    a_stderr = eval.fd(tfine, tmp[[2]]) # Std Error of a-function
+    #plotbeta(betaestlist = fRegressCell$betaestlist, betastderrlist = stderrCell$betastderrlist)
+  }else{
+    if(mediatorMethod=="fosr2s"){
+      tfine = seq(0,T_sup, length.out=len)
+      
+      fit = fosr2s(Y = t(m), cbind(int=1,x=x), argvals = tfine, nbasis = 15, norder = 4, basistype = "bspline")
+      af  = fit$est.func[,2]
+      a   = sum(af)*(tfine[2] - tfine[1])
+      
+      ResM     = t(t(m) - fit$yhat)
+      a_stderr = fit$se.func[,2]
+    }else{stop("mediatorMethod must be 'fRegress' or 'fosr2s'")}
+  }
   
   ######################
   ## Path x, m -> y  ###
@@ -125,7 +139,11 @@ fMediation_ML <- function(x,y,m,nbasis,norder,lambda=1e-8,pen=0.1, plot=FALSE, b
   bf = eval.fd(tfine,bfun)            # Evaluate b-function  
   b  = sum(bf)*(tfine[2]-tfine[1])    # Integral of b-function: b = \int bf(t) dt gives b-path
   
-  abf = eval.fd(tfine,afun*bfun)      # ab-functions
+  if(mediatorMethod=="fRegress"){ 
+    abf = eval.fd(tfine,afun*bfun)      # ab-functions
+  }else{
+  abf = af*bf
+  }
   ab  = sum(abf)*(tfine[2]-tfine[1])  # Integral of ab-function: ab = \int af(t)bf(t) dt gives ab-path
   
   tmp = eval.fd(tfine, betaestcell[[3]]$fd) # c'-path
@@ -134,10 +152,11 @@ fMediation_ML <- function(x,y,m,nbasis,norder,lambda=1e-8,pen=0.1, plot=FALSE, b
   # Plot results
   if(plot==TRUE){
   par(mfrow=c(3,1))
-  plot(tfine, eval.fd(tfine,afun), type="l", main="'a' function")
+
+  plot(tfine, af, type="l", main="'a' function")
   lines(tfine, af + 2*a_stderr, col="green")
   lines(tfine, af - 2*a_stderr, col="green")
-  
+
   plot(tfine, eval.fd(tfine,bfun), type="l", main="'b' function")
   lines(tfine, bf + 2*b_stderr, col="green")
   lines(tfine, bf - 2*b_stderr, col="green")
