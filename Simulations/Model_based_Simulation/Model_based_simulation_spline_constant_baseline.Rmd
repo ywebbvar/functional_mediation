@@ -29,7 +29,7 @@ eval.bspline = eval.basis(seq(0,1,length.out=len), basis)
 # Create delta
 set.seed(2903)
 delta1_coef = c(rep(0,5), runif(5,-2,0), runif(10,0,2),rep(0,10)) 
-delta1      = eval.bspline%*%delta1_coef
+delta1      = rep(0,len) # No baseline function for mediator
 
 # Create alpha
 set.seed(493)
