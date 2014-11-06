@@ -1,5 +1,5 @@
 ---
-title: "Setting simulation"
+title: "Simulation using splines. Using wide beta"
 author: "Yenny Webb-Vargas"
 date: "Friday, October 31, 2014"
 output: html_document
