@@ -1,0 +1,274 @@
+---
+title: "Simulation SimRevisionR2"
+author: "Yenny Webb-Vargas"
+date: "Wednesday, September 17, 2014"
+output: html_document
+---
+
+This implements simulation for testing my functional mediation function. 
+
+Load the library 'refund'. It also loads the library 'fda' among many others.
+```{r}
+library(refund)
+library(boot)
+source('/home/bst/student/ywebbvar/Mediation/Functional_Mediation/fMediation_ML.R')
+```
+
+Defining bootstrap function:
+```{r fbootstrap}
+fbootstrap_ML <- function(dta, index){
+  dta = dta[index,]
+  Y = dta[,"Y"]
+  X = dta[,"X"]
+  M = t(dta[,seq(2+1,ncol(dta))])
+  
+  result = fMediation_ML(X,Y,M,nbasis,norder,lambda=1e-8, boot=TRUE)
+  return(result)
+}
+```
+
+Load the canonical HRF function:
+```{r}
+short_HRF <- read.table("/home/bst/student/ywebbvar/Mediation/Functional_Mediation/YennyHRF")
+```
+
+Setting seed:
+```{r}
+seed = 794320
+```
+
+
+```{r}
+sub=20
+nbasis = 30
+norder = 6
+
+iters = 500  #1 
+nboot = 1000 #50
+```
+
+```{r}
+Z = c(rep(0,20), as.numeric(short_HRF), rep(0,20))
+```
+
+### Null Simulation 1. 
+In this simulation, $M$ is pure noise (is not dependent on $X$), and $Y$ only depends on $X$.
+
+```{r}
+Pall  = matrix(0, iters, length(Z))
+Pall2 = matrix(0, iters, length(Z))
+Flag  = rep(0, iters)
+A     = matrix(0, iters, length(Z))
+B     = matrix(0, iters, length(Z))
+C     = rep(0, iters)
+CP   = rep(0, iters)
+
+for(i in 1:iters){
+  set.seed(seed)
+  X = rep(0,sub)
+  X[sample(1:sub)[1:(floor(sub/2))]] = 2
+  X = X - 1 
+  
+  M = sapply(1:sub, function(i) rnorm(n = length(Z),mean=0, sd=1))
+  Y = X + rnorm(sub, mean=0, sd=1)
+  
+  # I used this code to get data to check the fMediation_ML function, 
+  # it was causing problems with lambdas that are not very close to 
+  # zero:
+  #write.csv(cbind(Y,X,t(M)), file=paste0("sim_",seed, ".csv"))
+  
+  dta  = cbind('Y'=Y,'X'=X,'M' =t(M))
+  
+  out  = fMediation_ML(X,Y,M,nbasis,norder,lambda=1e-8)
+  #stat = boot(data = dta, statistic = fbootstrap_ML,R = nboot,sim = "ordinary",stype = "i")
+  stat = boot(data = dta, statistic = fbootstrap_ML,R = nboot,sim = "ordinary",stype = "i",parallel = "multicore",ncpus=10)
+  
+              
+  
+  # Calculating p-value
+  Pall[i,] = 2*apply(cbind(colMeans(stat$t < 2*matrix(stat$t0, ncol=ncol(stat$t), nrow=nrow(stat$t), byrow = TRUE)),
+                           colMeans(stat$t > 2*matrix(stat$t0, ncol=ncol(stat$t), nrow=nrow(stat$t), byrow = TRUE))),1, min)
+  Pall2[i,] = 2*apply(cbind(colMeans(stat$t < matrix(stat$t0, ncol=ncol(stat$t), nrow=nrow(stat$t), byrow = TRUE)),
+                            colMeans(stat$t > matrix(stat$t0, ncol=ncol(stat$t), nrow=nrow(stat$t), byrow = TRUE))), 1, min)
+  A[i,] = out$afunction
+  B[i,] = out$bfunction
+  C[i]  = out$c
+  CP[i] = out$cp
+  }
+
+save(A,B,C,CP,Pall,Pall2, file=paste0("Simulation1_",format(Sys.time(), "%Y%m%d-%H%M"),".Rdata"))
+```
+
+
+### Null Simulation 2. 
+In this simulation, $M$ depends on $X$, but $Y$ only depends on $X$ and not on $M$.
+
+```{r}
+Pall  = matrix(0, iters, length(Z))
+Pall2 = matrix(0, iters, length(Z))
+Flag  = rep(0, iters)
+A     = matrix(0, iters, length(Z))
+B     = matrix(0, iters, length(Z))
+C     = rep(0, iters)
+CP   = rep(0, iters)
+
+for(i in 1:iters){ 
+  set.seed(seed+10)
+  X = rep(0,sub)
+  X[sample(1:sub)[1:(floor(sub/2))]] = 2
+  X = X - 1 
+  
+  M = sapply(1:sub, function(i) rnorm(n = length(Z),mean=0, sd=1)) + t((X+1)%*%t(Z))
+  Y = X + rnorm(sub, mean=0, sd=1)
+  
+  dta  = cbind('Y'=Y,'X'=X,'M' =t(M))
+  
+  out  = fMediation_ML(X,Y,M,nbasis,norder,lambda=1e-8)
+  #stat = boot(data = dta, statistic = fbootstrap_ML,R = nboot,sim = "ordinary",stype = "i") 
+  stat = boot(data = dta, statistic = fbootstrap_ML,R = nboot,sim = "ordinary",stype = "i",parallel = "multicore",ncpus=10)
+  
+  
+  # Calculating p-value
+  Pall[i,] = 2*apply(cbind(colMeans(stat$t < 2*matrix(stat$t0, ncol=ncol(stat$t), nrow=nrow(stat$t), byrow = TRUE)),
+                           colMeans(stat$t > 2*matrix(stat$t0, ncol=ncol(stat$t), nrow=nrow(stat$t), byrow = TRUE))),1, min)
+  Pall2[i,] = 2*apply(cbind(colMeans(stat$t < matrix(stat$t0, ncol=ncol(stat$t), nrow=nrow(stat$t), byrow = TRUE)),
+                            colMeans(stat$t > matrix(stat$t0, ncol=ncol(stat$t), nrow=nrow(stat$t), byrow = TRUE))), 1, min)
+  A[i,] = out$afunction
+  B[i,] = out$bfunction
+  C[i]  = out$c
+  CP[i] = out$cp
+}
+
+save(A,B,C,CP,Pall,Pall2, file=paste0("Simulation2_",format(Sys.time(), "%Y%m%d-%H%M"),".Rdata"))
+```
+
+
+### Null simulation 3
+In this simulation, $M$ depends on $Z$ for all subjects (and does not depend on $X$), $Y$ only depends on $M$ and not on $X$.
+
+```{r}
+Pall  = matrix(0, iters, length(Z))
+Pall2 = matrix(0, iters, length(Z))
+Flag  = rep(0, iters)
+A     = matrix(0, iters, length(Z))
+B     = matrix(0, iters, length(Z))
+C     = rep(0, iters)
+CP   = rep(0, iters)
+
+for(i in 1:iters){ 
+  set.seed(seed+20)
+  X = rep(0,sub)
+  X[sample(1:sub)[1:(floor(sub/2))]] = 2
+  X = X - 1 
+  
+  M = sapply(1:sub, function(i) rnorm(n = length(Z),mean=0, sd=1)) + Z
+  Y = apply(M,2,function(m) sum(m[floor(nrow(M)/3):ceiling(nrow(M)*2/3)])) + rnorm(sub, mean=0, sd=1)
+  
+  dta  = cbind('Y'=Y,'X'=X,'M' =t(M))
+  
+  out  = fMediation_ML(X,Y,M,nbasis,norder,lambda=1e-8)
+  #stat = boot(data = dta, statistic = fbootstrap_ML,R = nboot,sim = "ordinary",stype = "i") 
+  stat = boot(data = dta, statistic = fbootstrap_ML,R = nboot,sim = "ordinary",stype = "i",parallel = "multicore",ncpus=10)
+  
+  
+  # Calculating p-value
+  Pall[i,] = 2*apply(cbind(colMeans(stat$t < 2*matrix(stat$t0, ncol=ncol(stat$t), nrow=nrow(stat$t), byrow = TRUE)),
+                           colMeans(stat$t > 2*matrix(stat$t0, ncol=ncol(stat$t), nrow=nrow(stat$t), byrow = TRUE))),1, min)
+  Pall2[i,] = 2*apply(cbind(colMeans(stat$t < matrix(stat$t0, ncol=ncol(stat$t), nrow=nrow(stat$t), byrow = TRUE)),
+                            colMeans(stat$t > matrix(stat$t0, ncol=ncol(stat$t), nrow=nrow(stat$t), byrow = TRUE))), 1, min)
+  A[i,] = out$afunction
+  B[i,] = out$bfunction
+  C[i]  = out$c
+  CP[i] = out$cp
+}
+save(A,B,C,CP,Pall,Pall2, file=paste0("Simulation3_",format(Sys.time(), "%Y%m%d-%H%M"),".Rdata"))
+```
+
+
+### Simulation 4
+In this simulation, $M$ depends on $Z$ and $X$, $Y$ only depends on $M$ and not on $X$ (there is complete mediation).
+
+```{r}
+P     = rep(0,iters)
+Pall  = matrix(0, iters, length(Z))
+Pall2 = matrix(0, iters, length(Z))
+Flag  = rep(0, iters)
+A     = matrix(0, iters, length(Z))
+B     = matrix(0, iters, length(Z))
+C     = rep(0, iters)
+CP    = rep(0, iters)
+
+for(i in 1:iters){ 
+  set.seed(seed+30)
+  X = rep(0,sub)
+  X[sample(1:sub)[1:(floor(sub/2))]] = 2
+  X = X - 1 
+  
+  M = sapply(1:sub, function(i) rnorm(n = length(Z),mean=0, sd=1)) + t((X+1)%*%t(Z))
+  Y = apply(M,2,function(m) sum(m[floor(nrow(M)/3):ceiling(nrow(M)*2/3)])) + rnorm(sub, mean=0, sd=1)
+  
+  dta  = cbind('Y'=Y,'X'=X,'M' =t(M))
+  
+  out  = fMediation_ML(X,Y,M,nbasis,norder,lambda=1e-8)
+  #stat = boot(data = dta, statistic = fbootstrap_ML,R = nboot,sim = "ordinary",stype = "i") 
+  stat = boot(data = dta, statistic = fbootstrap_ML,R = nboot,sim = "ordinary",stype = "i",parallel = "multicore",ncpus=10)
+  
+  
+  # Calculating p-value
+  Pall[i,] = 2*apply(cbind(colMeans(stat$t < 2*matrix(stat$t0, ncol=ncol(stat$t), nrow=nrow(stat$t), byrow = TRUE)),
+                           colMeans(stat$t > 2*matrix(stat$t0, ncol=ncol(stat$t), nrow=nrow(stat$t), byrow = TRUE))),1, min)
+  Pall2[i,] = 2*apply(cbind(colMeans(stat$t < matrix(stat$t0, ncol=ncol(stat$t), nrow=nrow(stat$t), byrow = TRUE)),
+                            colMeans(stat$t > matrix(stat$t0, ncol=ncol(stat$t), nrow=nrow(stat$t), byrow = TRUE))), 1, min)
+  A[i,] = out$afunction
+  B[i,] = out$bfunction
+  C[i]  = out$c
+  CP[i] = out$cp
+}
+save(A,B,C,CP,Pall,Pall2, file=paste0("Simulation4_",format(Sys.time(), "%Y%m%d-%H%M"),".Rdata"))
+```
+
+
+### Simulation 5. Confounding
+In this simulation, $M$ depends on $Z$, $X$ and $\epsilon$, $Y$ only depends on $M$ and $\epsilon$.
+
+```{r eval=FALSE}
+P     = rep(0,iters)
+Pall  = matrix(0, iters, length(Z))
+Pall2 = matrix(0, iters, length(Z))
+Flag  = rep(0, iters)
+A     = matrix(0, iters, length(Z))
+B     = matrix(0, iters, length(Z))
+C     = rep(0, iters)
+CP    = rep(0, iters)
+
+for(i in 1:iters){ 
+  set.seed(seed+40)
+  X = rep(0,sub)
+  X[sample(1:sub)[1:(floor(sub/2))]] = 2
+  X = X - 1 
+  
+  eps = sapply(1:sub, function(i) rnorm(n = length(Z),mean=0, sd=1))
+  M   = t((X)%*%t(Z)) + eps
+  eta = apply(eps,2,function(e) sum(e[floor(nrow(M)/3):ceiling(nrow(M)*2/3)])) + rnorm(sub, mean=0, sd=1)
+  Y   = apply(M,2,function(m) sum(m[floor(nrow(M)/3):ceiling(nrow(M)*2/3)])) + eta
+  
+  dta  = cbind('Y'=Y,'X'=X,'M' =t(M))
+  
+  out  = fMediation_ML(X,Y,M,nbasis,norder,lambda=1e-8)
+  #stat = boot(data = dta, statistic = fbootstrap_ML,R = nboot,sim = "ordinary",stype = "i") 
+  stat = boot(data = dta, statistic = fbootstrap_ML,R = nboot,sim = "ordinary",stype = "i",parallel = "multicore",ncpus=10)
+  
+  
+  # Calculating p-value
+  Pall[i,] = 2*apply(cbind(colMeans(stat$t < 2*matrix(stat$t0, ncol=ncol(stat$t), nrow=nrow(stat$t), byrow = TRUE)),
+                           colMeans(stat$t > 2*matrix(stat$t0, ncol=ncol(stat$t), nrow=nrow(stat$t), byrow = TRUE))),1, min)
+  Pall2[i,] = 2*apply(cbind(colMeans(stat$t < matrix(stat$t0, ncol=ncol(stat$t), nrow=nrow(stat$t), byrow = TRUE)),
+                            colMeans(stat$t > matrix(stat$t0, ncol=ncol(stat$t), nrow=nrow(stat$t), byrow = TRUE))), 1, min)
+  A[i,] = out$afunction
+  B[i,] = out$bfunction
+  C[i]  = out$c
+  CP[i] = out$cp
+}
+
+save(A,B,C,CP,Pall,Pall2, file=paste0("Simulation5_",format(Sys.time(), "%Y%m%d-%H%M"),".Rdata"))
+```
