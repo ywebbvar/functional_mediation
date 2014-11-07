@@ -11,7 +11,8 @@ Load the library 'refund'. It also loads the library 'fda' among many others.
 ```{r}
 library(refund)
 library(boot)
-source('/home/bst/student/ywebbvar/Mediation/Functional_Mediation/fMediation_ML.R')
+#source('/home/bst/student/ywebbvar/Mediation/Functional_Mediation/fMediation_ML.R')
+source('~/GitHub/functional_mediation/fMediation_ML.R')
 ```
 
 Defining bootstrap function:
@@ -42,6 +43,10 @@ timevec = seq(0,T_sup, length.out=len)
 # Create bspline basis set
 basis        = create.bspline.basis(rangeval = c(0,T_sup), nbasis = 30, norder=6)
 eval.bspline = eval.basis(seq(0,1,length.out=len), basis)
+
+# Parameters for random errors
+sd_epsilon = 1
+sd_eta     = 1
 ```
 
 Create parameters: covariate and treatment effects
@@ -60,11 +65,14 @@ alpha      = eval.bspline%*%alpha_coef
 set.seed(84930)
 beta_coef = c(rep(0,15), runif(5,3,10), rep(0,10)) 
 beta      = eval.bspline%*%beta_coef
+
+delta2 = 5
+gamma  = 2
 ```
 
 Setting seed:
 ```{r}
-seed = 794320
+seed = 632020
 ```
 
 ### Null Simulation 1. 
@@ -76,27 +84,34 @@ Pall2 = matrix(0, iters, length(Z))
 Flag  = rep(0, iters)
 A     = matrix(0, iters, length(Z))
 B     = matrix(0, iters, length(Z))
-CP   = rep(0, iters)
+CP    = rep(0, iters)
+d2    = rep(0, iters)
 
 set.seed(seed)
 for(i in 1:iters){
-  X = rep(0,sub)
-  X[sample(1:sub)[1:(floor(sub/2))]] = 2
-  X = X - 1 
+  X          = rbinom(sub,1,0.5)
   
-  M = sapply(1:sub, function(i) rnorm(n = length(Z),mean=0, sd=1))
-  Y = X + rnorm(sub, mean=0, sd=1)
-  
-  # I used this code to get data to check the fMediation_ML function, 
-  # it was causing problems with lambdas that are not very close to 
-  # zero:
-  #write.csv(cbind(Y,X,t(M)), file=paste0("sim_",seed, ".csv"))
-  
-  dta  = cbind('Y'=Y,'X'=X,'M' =t(M))
+  epsilon    = matrix(rnorm(sub*len,0,sd_epsilon), ncol=len,nrow=(sub))
+
+  design_M = cbind(int=1,X=X)
+  coeff_M  = cbind(delta1,alpha)
+  colnames(coeff_M) = c("delta1","alpha")
+
+  M    = t(tcrossprod(coeff_M, design_M))+epsilon
+
+  eta      <- rnorm(n, 0, sd_eta) 
+
+  design_M_Y <- cbind(int=1,Z=Z,M=M)
+  coeff_M_Y  <- cbind(delta2,gamma, t(beta)*1/(ncol(M)-1))
+
+  Y    <- t(tcrossprod(coeff_M_Y, design_M_Y)) + eta
+  Y    <- as.numeric(Y_obs)
+
+  dta  = cbind('Y'=Y,'X'=X,'M' = M)
   
   out  = fMediation_ML(X,Y,M,nbasis,norder,lambda=1e-8)
-  #stat = boot(data = dta, statistic = fbootstrap_ML,R = nboot,sim = "ordinary",stype = "i")
-  stat = boot(data = dta, statistic = fbootstrap_ML,R = nboot,sim = "ordinary",stype = "i",parallel = "multicore",ncpus=10)
+  stat = boot(data = dta, statistic = fbootstrap_ML,R = nboot,sim = "ordinary",stype = "i")
+  #stat = boot(data = dta, statistic = fbootstrap_ML,R = nboot,sim = "ordinary",stype = "i",parallel = "multicore",ncpus=10)
   
               
   
@@ -109,6 +124,7 @@ for(i in 1:iters){
   B[i,] = out$bfunction
   C[i]  = out$c
   CP[i] = out$cp
+  d2[i] = out$Y_intercept
   }
 
 save(A,B,C,CP,Pall,Pall2, file=paste0("Simulation1_",format(Sys.time(), "%Y%m%d-%H%M"),".Rdata"))
