@@ -23,7 +23,7 @@ fbootstrap_ML <- function(dta, index){
   X = dta[,"X"]
   M = t(dta[,seq(2+1,ncol(dta))])
   
-  result = fMediation_ML(X,Y,M,mediatorMethod="fosr2s", nbasis=50,norder=6,lambda=1e-8, plot=FALSE, boot=TRUE)
+  result = fMediation_ML(X,Y,M,mediatorMethod="fosr2s", nbasis=nbasis,norder=norder,lambda=lambda, plot=FALSE, boot=TRUE)
   return(result)
 }
 ```
@@ -32,6 +32,7 @@ fbootstrap_ML <- function(dta, index){
 sub=20
 nbasis = 50
 norder = 6
+lambda = 1e-8
 
 iters   = 1  #500  #1 
 nboot   = 50 #1000 #50
@@ -79,13 +80,14 @@ seed = 632020
 In this simulation, $M$ is pure noise (is not dependent on $X$), and $Y$ only depends on $X$.
 
 ```{r}
-Pall  = matrix(0, iters, length(Z))
-Pall2 = matrix(0, iters, length(Z))
+Pall  = matrix(0, iters, len)
+Pall2 = matrix(0, iters, len)
 Flag  = rep(0, iters)
-A     = matrix(0, iters, length(Z))
-B     = matrix(0, iters, length(Z))
+A     = matrix(0, iters, len)
+B     = matrix(0, iters, len)
 CP    = rep(0, iters)
 d2    = rep(0, iters)
+ptime = list()
 
 set.seed(seed)
 for(i in 1:iters){
@@ -99,18 +101,18 @@ for(i in 1:iters){
 
   M    = t(tcrossprod(coeff_M, design_M))+epsilon
 
-  eta      <- rnorm(n, 0, sd_eta) 
+  eta      <- rnorm(sub, 0, sd_eta) 
 
-  design_M_Y <- cbind(int=1,Z=Z,M=M)
+  design_M_Y <- cbind(int=1,X=X,M=M)
   coeff_M_Y  <- cbind(delta2,gamma, t(beta)*1/(ncol(M)-1))
 
   Y    <- t(tcrossprod(coeff_M_Y, design_M_Y)) + eta
-  Y    <- as.numeric(Y_obs)
+  Y    <- as.numeric(Y)
 
   dta  = cbind('Y'=Y,'X'=X,'M' = M)
   
-  out  = fMediation_ML(X,Y,M,nbasis,norder,lambda=1e-8)
-  stat = boot(data = dta, statistic = fbootstrap_ML,R = nboot,sim = "ordinary",stype = "i")
+  out  = fMediation_ML(X,Y,t(M),mediatorMethod="fosr2s", nbasis=nbasis,norder=norder,lambda=lambda, plot=FALSE, boot=FALSE)
+  ptime[[i]] = system.time(stat <- boot(data = dta, statistic = fbootstrap_ML,R = nboot,sim = "ordinary",stype = "i"))
   #stat = boot(data = dta, statistic = fbootstrap_ML,R = nboot,sim = "ordinary",stype = "i",parallel = "multicore",ncpus=10)
   
               
@@ -122,12 +124,13 @@ for(i in 1:iters){
                             colMeans(stat$t > matrix(stat$t0, ncol=ncol(stat$t), nrow=nrow(stat$t), byrow = TRUE))), 1, min)
   A[i,] = out$afunction
   B[i,] = out$bfunction
-  C[i]  = out$c
   CP[i] = out$cp
   d2[i] = out$Y_intercept
+  
+  matplot(t(stat$t), type="l", col = rgb(200,1,1, 30, maxColorValue = 255))
   }
 
-save(A,B,C,CP,Pall,Pall2, file=paste0("Simulation1_",format(Sys.time(), "%Y%m%d-%H%M"),".Rdata"))
+save(A,B,C,CP,Pall,Pall2, file=paste0("Simulation_test_",format(Sys.time(), "%Y%m%d-%H%M"),".Rdata"))
 ```
 
 
