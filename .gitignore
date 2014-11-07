@@ -20,6 +20,10 @@ $RECYCLE.BIN/
 *.msm
 *.msp
 
+# Compressed files
+*.zip
+*.tar
+
 # =========================
 # Operating System Files
 # =========================
