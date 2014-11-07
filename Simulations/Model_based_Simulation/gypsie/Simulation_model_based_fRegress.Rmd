@@ -1,5 +1,5 @@
 ---
-title: "Simulation SimRevisionR2"
+title: "Simulation using splines. Original. In Gypsie"
 author: "Yenny Webb-Vargas"
 date: "Wednesday, September 17, 2014"
 output: html_document
@@ -22,33 +22,49 @@ fbootstrap_ML <- function(dta, index){
   X = dta[,"X"]
   M = t(dta[,seq(2+1,ncol(dta))])
   
-  result = fMediation_ML(X,Y,M,nbasis,norder,lambda=1e-8, boot=TRUE)
+  result = fMediation_ML(X,Y,M,mediatorMethod="fosr2s", nbasis=50,norder=6,lambda=1e-8, plot=FALSE, boot=TRUE)
   return(result)
 }
 ```
 
-Load the canonical HRF function:
 ```{r}
-short_HRF <- read.table("/home/bst/student/ywebbvar/Mediation/Functional_Mediation/YennyHRF")
+sub=20
+nbasis = 50
+norder = 6
+
+iters   = 1  #500  #1 
+nboot   = 50 #1000 #50
+
+len     = 50
+T_sup   = 1
+timevec = seq(0,T_sup, length.out=len)
+  
+# Create bspline basis set
+basis        = create.bspline.basis(rangeval = c(0,T_sup), nbasis = 30, norder=6)
+eval.bspline = eval.basis(seq(0,1,length.out=len), basis)
+```
+
+Create parameters: covariate and treatment effects
+```{r gen_pars}
+# Create delta
+set.seed(2903)
+delta1_coef = c(rep(0,5), runif(5,-2,0), runif(10,0,2),rep(0,10)) 
+delta1      = eval.bspline%*%delta1_coef
+
+# Create alpha
+set.seed(493)
+alpha_coef = c(rep(0,10), runif(10,1,4), rep(0,10)) 
+alpha      = eval.bspline%*%alpha_coef
+
+# Create beta
+set.seed(84930)
+beta_coef = c(rep(0,15), runif(5,3,10), rep(0,10)) 
+beta      = eval.bspline%*%beta_coef
 ```
 
 Setting seed:
 ```{r}
 seed = 794320
-```
-
-
-```{r}
-sub=20
-nbasis = 30
-norder = 6
-
-iters = 500  #1 
-nboot = 1000 #50
-```
-
-```{r}
-Z = c(rep(0,20), as.numeric(short_HRF), rep(0,20))
 ```
 
 ### Null Simulation 1. 
@@ -60,11 +76,10 @@ Pall2 = matrix(0, iters, length(Z))
 Flag  = rep(0, iters)
 A     = matrix(0, iters, length(Z))
 B     = matrix(0, iters, length(Z))
-C     = rep(0, iters)
 CP   = rep(0, iters)
 
+set.seed(seed)
 for(i in 1:iters){
-  set.seed(seed)
   X = rep(0,sub)
   X[sample(1:sub)[1:(floor(sub/2))]] = 2
   X = X - 1 
@@ -112,8 +127,8 @@ B     = matrix(0, iters, length(Z))
 C     = rep(0, iters)
 CP   = rep(0, iters)
 
+set.seed(seed+10)
 for(i in 1:iters){ 
-  set.seed(seed+10)
   X = rep(0,sub)
   X[sample(1:sub)[1:(floor(sub/2))]] = 2
   X = X - 1 
@@ -155,8 +170,8 @@ B     = matrix(0, iters, length(Z))
 C     = rep(0, iters)
 CP   = rep(0, iters)
 
+set.seed(seed+20)
 for(i in 1:iters){ 
-  set.seed(seed+20)
   X = rep(0,sub)
   X[sample(1:sub)[1:(floor(sub/2))]] = 2
   X = X - 1 
@@ -198,8 +213,8 @@ B     = matrix(0, iters, length(Z))
 C     = rep(0, iters)
 CP    = rep(0, iters)
 
+set.seed(seed+30)
 for(i in 1:iters){ 
-  set.seed(seed+30)
   X = rep(0,sub)
   X[sample(1:sub)[1:(floor(sub/2))]] = 2
   X = X - 1 
@@ -241,8 +256,8 @@ B     = matrix(0, iters, length(Z))
 C     = rep(0, iters)
 CP    = rep(0, iters)
 
+set.seed(seed+40)
 for(i in 1:iters){ 
-  set.seed(seed+40)
   X = rep(0,sub)
   X[sample(1:sub)[1:(floor(sub/2))]] = 2
   X = X - 1 
