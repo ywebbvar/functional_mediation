@@ -136,7 +136,7 @@ save(A,B,C,CP,Pall,Pall2, file=paste0("Simulation_4_",format(Sys.time(), "%Y%m%d
 
 
 ### Null Simulation 1. 
-In this simulation, $M$ is pure noise (is not dependent on $X$), and $Y$ only depends on $X$.
+In this simulation, $M$ is pure noise (and is not dependent on $X$), and $Y$ only depends on $X$.
 
 ```{r}
 Pall  = matrix(0, iters, len)
@@ -153,11 +153,7 @@ for(i in 1:iters){
   
   epsilon    = matrix(rnorm(sub*len,0,sd_epsilon), ncol=len,nrow=(sub))
 
-  design_M = rep(1, sub)
-  coeff_M  = cbind(delta1)
-  colnames(coeff_M) = c("delta1")
-
-  M    = t(tcrossprod(coeff_M, design_M))+epsilon
+  M    = epsilon
 
   eta      <- rnorm(sub, 0, sd_eta) 
 
