@@ -112,7 +112,7 @@ for(i in 1:iters){
   dta  = cbind('Y'=Y,'X'=X,'M' = M)
   
   out  = fMediation_ML(X,Y,t(M),mediatorMethod="fosr2s", nbasis=nbasis,norder=norder,lambda=lambda, plot=FALSE, boot=FALSE)
-  ptime[[i]] = system.time(stat <- boot(data = dta, statistic = fbootstrap_ML,R = nboot,sim = "ordinary",stype = "i"))
+  stat = boot(data = dta, statistic = fbootstrap_ML,R = nboot,sim = "ordinary",stype = "i")
   #stat = boot(data = dta, statistic = fbootstrap_ML,R = nboot,sim = "ordinary",stype = "i",parallel = "multicore",ncpus=10)
   
               
