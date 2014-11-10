@@ -154,16 +154,16 @@ for(i in 1:iters){
   
   epsilon    = matrix(rnorm(sub*len,0,sd_epsilon), ncol=len,nrow=(sub))
 
-  design_M = cbind(int=1,X=X)
-  coeff_M  = cbind(delta1,alpha)
-  colnames(coeff_M) = c("delta1","alpha")
+  design_M = cbind(int=1)
+  coeff_M  = cbind(delta1)
+  colnames(coeff_M) = c("delta1")
 
   M    = t(tcrossprod(coeff_M, design_M))+epsilon
 
   eta      <- rnorm(sub, 0, sd_eta) 
 
-  design_M_Y <- cbind(int=1,X=X,M=M)
-  coeff_M_Y  <- cbind(delta2,gamma, t(beta)*1/(ncol(M)-1))
+  design_M_Y <- cbind(int=1,X=X)
+  coeff_M_Y  <- cbind(delta2,gamma)
 
   Y    <- t(tcrossprod(coeff_M_Y, design_M_Y)) + eta
   Y    <- as.numeric(Y)
