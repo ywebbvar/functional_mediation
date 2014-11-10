@@ -154,17 +154,19 @@ fMediation_ML <- function(x,y,m,mediatorMethod="fosr2s", nbasis,norder,lambda=1e
 
   # Plot results
   if(plot==TRUE){
-  par(mfrow=c(3,1))
-
-  plot(tfine, af, type="l", main="'a' function")
-  lines(tfine, af + 2*a_stderr, col="green")
-  lines(tfine, af - 2*a_stderr, col="green")
-
-  plot(tfine, eval.fd(tfine,bfun), type="l", main="'b' function")
-  lines(tfine, bf + 2*b_stderr, col="green")
-  lines(tfine, bf - 2*b_stderr, col="green")
+    mipar = par()$mfrow
+    par(mfrow=c(3,1))
   
-  plot(tfine, abf, type="l", main="'ab' function")
+    plot(tfine, af, type="l", main="'a' function")
+    lines(tfine, af + 2*a_stderr, col="green")
+    lines(tfine, af - 2*a_stderr, col="green")
+  
+    plot(tfine, eval.fd(tfine,bfun), type="l", main="'b' function")
+    lines(tfine, bf + 2*b_stderr, col="green")
+    lines(tfine, bf - 2*b_stderr, col="green")
+    
+    plot(tfine, abf, type="l", main="'ab' function")
+    par(mfrow=mipar)
   }
   #plot(x,y)
   
