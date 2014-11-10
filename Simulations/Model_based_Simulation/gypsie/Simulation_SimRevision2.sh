@@ -1,1 +1,0 @@
-Rscript Simulation_SimRevision2.R
