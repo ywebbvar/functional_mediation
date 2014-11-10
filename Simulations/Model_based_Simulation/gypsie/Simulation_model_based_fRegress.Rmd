@@ -76,6 +76,65 @@ Setting seed:
 seed = 632020
 ```
 
+
+### Simulation 4
+In this simulation, $M$ depends on $Z$ and $X$, $Y$ only depends on $M$ and not on $X$ (there is complete mediation).
+
+```{r}
+Pall  = matrix(0, iters, len)
+Pall2 = matrix(0, iters, len)
+Flag  = rep(0, iters)
+A     = matrix(0, iters, len)
+B     = matrix(0, iters, len)
+CP    = rep(0, iters)
+d2    = rep(0, iters)
+ptime = list()
+
+set.seed(seed)
+for(i in 1:iters){
+  X          = rbinom(sub,1,0.5)
+  
+  epsilon    = matrix(rnorm(sub*len,0,sd_epsilon), ncol=len,nrow=(sub))
+
+  design_M = cbind(int=1,X=X)
+  coeff_M  = cbind(delta1,alpha)
+  colnames(coeff_M) = c("delta1","alpha")
+
+  M    = t(tcrossprod(coeff_M, design_M))+epsilon
+
+  eta      <- rnorm(sub, 0, sd_eta) 
+
+  design_M_Y <- cbind(int=1,X=X,M=M)
+  coeff_M_Y  <- cbind(delta2,gamma, t(beta)*1/(ncol(M)-1))
+
+  Y    <- t(tcrossprod(coeff_M_Y, design_M_Y)) + eta
+  Y    <- as.numeric(Y)
+
+  dta  = cbind('Y'=Y,'X'=X,'M' = M)
+  
+  out  = fMediation_ML(X,Y,t(M),mediatorMethod="fosr2s", nbasis=nbasis,norder=norder,lambda=lambda, plot=FALSE, boot=FALSE)
+  stat = boot(data = dta, statistic = fbootstrap_ML,R = nboot,sim = "ordinary",stype = "i")
+  #stat = boot(data = dta, statistic = fbootstrap_ML,R = nboot,sim = "ordinary",stype = "i",parallel = "multicore",ncpus=10)
+  
+              
+  
+  # Calculating p-value
+  Pall[i,] = 2*apply(cbind(colMeans(stat$t < 2*matrix(stat$t0, ncol=ncol(stat$t), nrow=nrow(stat$t), byrow = TRUE)),
+                           colMeans(stat$t > 2*matrix(stat$t0, ncol=ncol(stat$t), nrow=nrow(stat$t), byrow = TRUE))),1, min)
+  Pall2[i,] = 2*apply(cbind(colMeans(stat$t < matrix(stat$t0, ncol=ncol(stat$t), nrow=nrow(stat$t), byrow = TRUE)),
+                            colMeans(stat$t > matrix(stat$t0, ncol=ncol(stat$t), nrow=nrow(stat$t), byrow = TRUE))), 1, min)
+  A[i,] = out$afunction
+  B[i,] = out$bfunction
+  CP[i] = out$cp
+  d2[i] = out$Y_intercept
+  
+  matplot(t(stat$t), type="l", col = rgb(200,1,1, 30, maxColorValue = 255))
+  }
+
+save(A,B,C,CP,Pall,Pall2, file=paste0("Simulation_test_",format(Sys.time(), "%Y%m%d-%H%M"),".Rdata"))
+```
+
+
 ### Null Simulation 1. 
 In this simulation, $M$ is pure noise (is not dependent on $X$), and $Y$ only depends on $X$.
 
@@ -132,6 +191,7 @@ for(i in 1:iters){
 
 save(A,B,C,CP,Pall,Pall2, file=paste0("Simulation_test_",format(Sys.time(), "%Y%m%d-%H%M"),".Rdata"))
 ```
+
 
 
 ### Null Simulation 2. 
