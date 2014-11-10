@@ -18,7 +18,7 @@ plots   = FALSE
 library(refund)
 library(boot)
 if(cluster){
-  source('/home/bst/student/ywebbvar/Mediation/Functional_Mediation/fMediation_ML.R')
+  source('/home/bst/student/ywebbvar/Github/functional_mediation/fMediation_ML.R')
   }else{
   source('~/GitHub/functional_mediation/fMediation_ML.R')  
   }
