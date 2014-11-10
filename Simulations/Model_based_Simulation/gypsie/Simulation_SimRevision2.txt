@@ -1,0 +1,3 @@
+cd Mediation/Functional_Mediation/Simulation_SimRevisionR2/
+
+qsub -N withinbs -cwd -pe local 10 -R y -l mem_free=7G,h_vmem=8G, Simulation_SimRevision2.sh
