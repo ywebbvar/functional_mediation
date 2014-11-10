@@ -74,6 +74,7 @@ gamma  = 2
 Setting seed:
 ```{r}
 seed = 632020
+set.seed(seed)
 ```
 
 
@@ -90,7 +91,6 @@ CP    = rep(0, iters)
 d2    = rep(0, iters)
 ptime = list()
 
-set.seed(seed)
 for(i in 1:iters){
   X          = rbinom(sub,1,0.5)
   
@@ -247,7 +247,7 @@ save(A,B,C,CP,Pall,Pall2, file=paste0("Simulation_2_",format(Sys.time(), "%Y%m%d
 
 
 ### Null simulation 3
-In this simulation, $M$ depends on $Z$ for all subjects (and does not depend on $X$), $Y$ only depends on $M$ and not on $X$.
+In this simulation, $M$ depends on $\delta_1$ for all subjects (and does not depend on $X$), $Y$ only depends on $M$ and not on $X$.
 
 ```{r}
 Pall  = matrix(0, iters, len)
@@ -257,31 +257,29 @@ A     = matrix(0, iters, len)
 B     = matrix(0, iters, len)
 CP    = rep(0, iters)
 d2    = rep(0, iters)
-ptime = list()
 
-set.seed(seed)
 for(i in 1:iters){
   X          = rbinom(sub,1,0.5)
   
   epsilon    = matrix(rnorm(sub*len,0,sd_epsilon), ncol=len,nrow=(sub))
 
-  design_M = cbind(int=1,X=X)
-  coeff_M  = cbind(delta1,alpha)
-  colnames(coeff_M) = c("delta1","alpha")
+  design_M = rep(1,sub)
+  coeff_M  = cbind(delta1)
+  colnames(coeff_M) = c("delta1")
 
   M    = t(tcrossprod(coeff_M, design_M))+epsilon
 
   eta      <- rnorm(sub, 0, sd_eta) 
 
   design_M_Y <- cbind(int=1,X=X,M=M)
-  coeff_M_Y  <- cbind(delta2,gamma, t(beta)*1/(ncol(M)-1))
+  coeff_M_Y  <- cbind(delta2,0, t(beta)*1/(ncol(M)-1))
 
   Y    <- t(tcrossprod(coeff_M_Y, design_M_Y)) + eta
   Y    <- as.numeric(Y)
 
   dta  = cbind('Y'=Y,'X'=X,'M' = M)
   
-  out  = fMediation_ML(X,Y,t(M),mediatorMethod="fosr2s", nbasis=nbasis,norder=norder,lambda=lambda, plot=FALSE, boot=FALSE)
+  out  = fMediation_ML(X,Y,t(M),mediatorMethod="fosr2s", nbasis=nbasis,norder=norder,lambda=lambda, plot=TRUE, boot=FALSE)
   stat = boot(data = dta, statistic = fbootstrap_ML,R = nboot,sim = "ordinary",stype = "i")
   #stat = boot(data = dta, statistic = fbootstrap_ML,R = nboot,sim = "ordinary",stype = "i",parallel = "multicore",ncpus=10)
   
@@ -297,97 +295,8 @@ for(i in 1:iters){
   CP[i] = out$cp
   d2[i] = out$Y_intercept
   
-  #matplot(t(stat$t), type="l", col = rgb(200,1,1, 30, maxColorValue = 255))
+  matplot(t(stat$t), type="l", col = rgb(200,1,1, 30, maxColorValue = 255))
   }
 
-save(A,B,C,CP,Pall,Pall2, file=paste0("Simulation_4_",format(Sys.time(), "%Y%m%d-%H%M"),".Rdata"))
-```
-
-
-### Simulation 4
-In this simulation, $M$ depends on $Z$ and $X$, $Y$ only depends on $M$ and not on $X$ (there is complete mediation).
-
-```{r}
-P     = rep(0,iters)
-Pall  = matrix(0, iters, length(Z))
-Pall2 = matrix(0, iters, length(Z))
-Flag  = rep(0, iters)
-A     = matrix(0, iters, length(Z))
-B     = matrix(0, iters, length(Z))
-C     = rep(0, iters)
-CP    = rep(0, iters)
-
-set.seed(seed+30)
-for(i in 1:iters){ 
-  X = rep(0,sub)
-  X[sample(1:sub)[1:(floor(sub/2))]] = 2
-  X = X - 1 
-  
-  M = sapply(1:sub, function(i) rnorm(n = length(Z),mean=0, sd=1)) + t((X+1)%*%t(Z))
-  Y = apply(M,2,function(m) sum(m[floor(nrow(M)/3):ceiling(nrow(M)*2/3)])) + rnorm(sub, mean=0, sd=1)
-  
-  dta  = cbind('Y'=Y,'X'=X,'M' =t(M))
-  
-  out  = fMediation_ML(X,Y,M,nbasis,norder,lambda=1e-8)
-  #stat = boot(data = dta, statistic = fbootstrap_ML,R = nboot,sim = "ordinary",stype = "i") 
-  stat = boot(data = dta, statistic = fbootstrap_ML,R = nboot,sim = "ordinary",stype = "i",parallel = "multicore",ncpus=10)
-  
-  
-  # Calculating p-value
-  Pall[i,] = 2*apply(cbind(colMeans(stat$t < 2*matrix(stat$t0, ncol=ncol(stat$t), nrow=nrow(stat$t), byrow = TRUE)),
-                           colMeans(stat$t > 2*matrix(stat$t0, ncol=ncol(stat$t), nrow=nrow(stat$t), byrow = TRUE))),1, min)
-  Pall2[i,] = 2*apply(cbind(colMeans(stat$t < matrix(stat$t0, ncol=ncol(stat$t), nrow=nrow(stat$t), byrow = TRUE)),
-                            colMeans(stat$t > matrix(stat$t0, ncol=ncol(stat$t), nrow=nrow(stat$t), byrow = TRUE))), 1, min)
-  A[i,] = out$afunction
-  B[i,] = out$bfunction
-  C[i]  = out$c
-  CP[i] = out$cp
-}
-save(A,B,C,CP,Pall,Pall2, file=paste0("Simulation4_",format(Sys.time(), "%Y%m%d-%H%M"),".Rdata"))
-```
-
-
-### Simulation 5. Confounding
-In this simulation, $M$ depends on $Z$, $X$ and $\epsilon$, $Y$ only depends on $M$ and $\epsilon$.
-
-```{r eval=FALSE}
-P     = rep(0,iters)
-Pall  = matrix(0, iters, length(Z))
-Pall2 = matrix(0, iters, length(Z))
-Flag  = rep(0, iters)
-A     = matrix(0, iters, length(Z))
-B     = matrix(0, iters, length(Z))
-C     = rep(0, iters)
-CP    = rep(0, iters)
-
-set.seed(seed+40)
-for(i in 1:iters){ 
-  X = rep(0,sub)
-  X[sample(1:sub)[1:(floor(sub/2))]] = 2
-  X = X - 1 
-  
-  eps = sapply(1:sub, function(i) rnorm(n = length(Z),mean=0, sd=1))
-  M   = t((X)%*%t(Z)) + eps
-  eta = apply(eps,2,function(e) sum(e[floor(nrow(M)/3):ceiling(nrow(M)*2/3)])) + rnorm(sub, mean=0, sd=1)
-  Y   = apply(M,2,function(m) sum(m[floor(nrow(M)/3):ceiling(nrow(M)*2/3)])) + eta
-  
-  dta  = cbind('Y'=Y,'X'=X,'M' =t(M))
-  
-  out  = fMediation_ML(X,Y,M,nbasis,norder,lambda=1e-8)
-  #stat = boot(data = dta, statistic = fbootstrap_ML,R = nboot,sim = "ordinary",stype = "i") 
-  stat = boot(data = dta, statistic = fbootstrap_ML,R = nboot,sim = "ordinary",stype = "i",parallel = "multicore",ncpus=10)
-  
-  
-  # Calculating p-value
-  Pall[i,] = 2*apply(cbind(colMeans(stat$t < 2*matrix(stat$t0, ncol=ncol(stat$t), nrow=nrow(stat$t), byrow = TRUE)),
-                           colMeans(stat$t > 2*matrix(stat$t0, ncol=ncol(stat$t), nrow=nrow(stat$t), byrow = TRUE))),1, min)
-  Pall2[i,] = 2*apply(cbind(colMeans(stat$t < matrix(stat$t0, ncol=ncol(stat$t), nrow=nrow(stat$t), byrow = TRUE)),
-                            colMeans(stat$t > matrix(stat$t0, ncol=ncol(stat$t), nrow=nrow(stat$t), byrow = TRUE))), 1, min)
-  A[i,] = out$afunction
-  B[i,] = out$bfunction
-  C[i]  = out$c
-  CP[i] = out$cp
-}
-
-save(A,B,C,CP,Pall,Pall2, file=paste0("Simulation5_",format(Sys.time(), "%Y%m%d-%H%M"),".Rdata"))
+save(A,B,C,CP,Pall,Pall2, file=paste0("Simulation_3_",format(Sys.time(), "%Y%m%d-%H%M"),".Rdata"))
 ```
