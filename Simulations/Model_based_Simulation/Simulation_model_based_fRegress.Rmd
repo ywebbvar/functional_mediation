@@ -8,11 +8,20 @@ output: html_document
 This implements simulation for testing my functional mediation function. 
 
 Load the library 'refund'. It also loads the library 'fda' among many others.
+
+```{r}
+cluster = FALSE
+plots   = TRUE
+```
+
 ```{r}
 library(refund)
 library(boot)
-#source('/home/bst/student/ywebbvar/Mediation/Functional_Mediation/fMediation_ML.R')
-source('~/GitHub/functional_mediation/fMediation_ML.R')
+if(cluster){
+  source('/home/bst/student/ywebbvar/Mediation/Functional_Mediation/fMediation_ML.R')
+  }else{
+  source('~/GitHub/functional_mediation/fMediation_ML.R')  
+  }
 ```
 
 Defining bootstrap function:
@@ -34,8 +43,13 @@ nbasis = 50
 norder = 6
 lambda = 1e-8
 
-iters   = 1  #500  #1 
-nboot   = 50 #1000 #50
+if(cluster){
+  iters   = 500  
+  nboot   = 1000 
+}else{
+  iters   = 1  
+  nboot   = 50 
+}
 
 len     = 50
 T_sup   = 1
@@ -69,6 +83,8 @@ beta      = eval.bspline%*%beta_coef
 
 delta2 = 5
 gamma  = 2
+
+if(plots) matplot(cbind(delta1,alpha,beta), type="l")
 ```
 
 Setting seed:
@@ -112,11 +128,14 @@ for(i in 1:iters){
 
   dta  = cbind('Y'=Y,'X'=X,'M' = M)
   
-  out  = fMediation_ML(X,Y,t(M),mediatorMethod="fosr2s", nbasis=nbasis,norder=norder,lambda=lambda, plot=FALSE, boot=FALSE)
-  stat = boot(data = dta, statistic = fbootstrap_ML,R = nboot,sim = "ordinary",stype = "i")
-  #stat = boot(data = dta, statistic = fbootstrap_ML,R = nboot,sim = "ordinary",stype = "i",parallel = "multicore",ncpus=10)
-  
-              
+  out  = fMediation_ML(X,Y,t(M),mediatorMethod="fosr2s", nbasis=nbasis,norder=norder,lambda=lambda, plot=plots, boot=FALSE)
+  if(cluster==TRUE){
+    stat = boot(data = dta, statistic = fbootstrap_ML,R = nboot,sim = "ordinary",stype = "i",parallel = "multicore",ncpus=10)
+    }else{
+    stat = boot(data = dta, statistic = fbootstrap_ML,R = nboot,sim = "ordinary",stype = "i")
+    }
+
+                
   
   # Calculating p-value
   Pall[i,] = 2*apply(cbind(colMeans(stat$t < 2*matrix(stat$t0, ncol=ncol(stat$t), nrow=nrow(stat$t), byrow = TRUE)),
@@ -128,7 +147,7 @@ for(i in 1:iters){
   CP[i] = out$cp
   d2[i] = out$Y_intercept
   
-  #matplot(t(stat$t), type="l", col = rgb(200,1,1, 30, maxColorValue = 255))
+  if(plots)matplot(t(stat$t), type="l", col = rgb(200,1,1, 30, maxColorValue = 255))
   }
 
 save(A,B,C,CP,Pall,Pall2, file=paste0("Simulation_4_",format(Sys.time(), "%Y%m%d-%H%M"),".Rdata"))
@@ -165,11 +184,14 @@ for(i in 1:iters){
 
   dta  = cbind('Y'=Y,'X'=X,'M' = M)
   
-  out  = fMediation_ML(X,Y,t(M),mediatorMethod="fosr2s", nbasis=nbasis,norder=norder,lambda=lambda, plot=FALSE, boot=FALSE)
-  stat = boot(data = dta, statistic = fbootstrap_ML,R = nboot,sim = "ordinary",stype = "i")
-  #stat = boot(data = dta, statistic = fbootstrap_ML,R = nboot,sim = "ordinary",stype = "i",parallel = "multicore",ncpus=10)
-  
-              
+  out  = fMediation_ML(X,Y,t(M),mediatorMethod="fosr2s", nbasis=nbasis,norder=norder,lambda=lambda, plot=plots, boot=FALSE)
+  if(cluster==TRUE){
+    stat = boot(data = dta, statistic = fbootstrap_ML,R = nboot,sim = "ordinary",stype = "i",parallel = "multicore",ncpus=10)
+    }else{
+    stat = boot(data = dta, statistic = fbootstrap_ML,R = nboot,sim = "ordinary",stype = "i")
+    }
+
+                
   
   # Calculating p-value
   Pall[i,] = 2*apply(cbind(colMeans(stat$t < 2*matrix(stat$t0, ncol=ncol(stat$t), nrow=nrow(stat$t), byrow = TRUE)),
@@ -181,7 +203,7 @@ for(i in 1:iters){
   CP[i] = out$cp
   d2[i] = out$Y_intercept
   
-  #matplot(t(stat$t), type="l", col = rgb(200,1,1, 30, maxColorValue = 255))
+  if(plots)matplot(t(stat$t), type="l", col = rgb(200,1,1, 30, maxColorValue = 255))
   }
 
 save(A,B,C,CP,Pall,Pall2, file=paste0("Simulation_1_",format(Sys.time(), "%Y%m%d-%H%M"),".Rdata"))
@@ -223,11 +245,14 @@ for(i in 1:iters){
 
   dta  = cbind('Y'=Y,'X'=X,'M' = M)
   
-  out  = fMediation_ML(X,Y,t(M),mediatorMethod="fosr2s", nbasis=nbasis,norder=norder,lambda=lambda, plot=TRUE, boot=FALSE)
-  stat = boot(data = dta, statistic = fbootstrap_ML,R = nboot,sim = "ordinary",stype = "i")
-  #stat = boot(data = dta, statistic = fbootstrap_ML,R = nboot,sim = "ordinary",stype = "i",parallel = "multicore",ncpus=10)
-  
-              
+  out  = fMediation_ML(X,Y,t(M),mediatorMethod="fosr2s", nbasis=nbasis,norder=norder,lambda=lambda, plot=plots, boot=FALSE)
+  if(cluster==TRUE){
+    stat = boot(data = dta, statistic = fbootstrap_ML,R = nboot,sim = "ordinary",stype = "i",parallel = "multicore",ncpus=10)
+    }else{
+    stat = boot(data = dta, statistic = fbootstrap_ML,R = nboot,sim = "ordinary",stype = "i")
+    }
+
+                
   
   # Calculating p-value
   Pall[i,] = 2*apply(cbind(colMeans(stat$t < 2*matrix(stat$t0, ncol=ncol(stat$t), nrow=nrow(stat$t), byrow = TRUE)),
@@ -239,7 +264,7 @@ for(i in 1:iters){
   CP[i] = out$cp
   d2[i] = out$Y_intercept
   
-  #matplot(t(stat$t), type="l", col = rgb(200,1,1, 30, maxColorValue = 255))
+  if(plots)matplot(t(stat$t), type="l", col = rgb(200,1,1, 30, maxColorValue = 255))
   }
 
 save(A,B,C,CP,Pall,Pall2, file=paste0("Simulation_2_",format(Sys.time(), "%Y%m%d-%H%M"),".Rdata"))
@@ -279,11 +304,14 @@ for(i in 1:iters){
 
   dta  = cbind('Y'=Y,'X'=X,'M' = M)
   
-  out  = fMediation_ML(X,Y,t(M),mediatorMethod="fosr2s", nbasis=nbasis,norder=norder,lambda=lambda, plot=TRUE, boot=FALSE)
-  stat = boot(data = dta, statistic = fbootstrap_ML,R = nboot,sim = "ordinary",stype = "i")
-  #stat = boot(data = dta, statistic = fbootstrap_ML,R = nboot,sim = "ordinary",stype = "i",parallel = "multicore",ncpus=10)
-  
-              
+  out  = fMediation_ML(X,Y,t(M),mediatorMethod="fosr2s", nbasis=nbasis,norder=norder,lambda=lambda, plot=plots, boot=FALSE)
+  if(cluster==TRUE){
+    stat = boot(data = dta, statistic = fbootstrap_ML,R = nboot,sim = "ordinary",stype = "i",parallel = "multicore",ncpus=10)
+    }else{
+    stat = boot(data = dta, statistic = fbootstrap_ML,R = nboot,sim = "ordinary",stype = "i")
+    }
+
+                
   
   # Calculating p-value
   Pall[i,] = 2*apply(cbind(colMeans(stat$t < 2*matrix(stat$t0, ncol=ncol(stat$t), nrow=nrow(stat$t), byrow = TRUE)),
@@ -295,7 +323,7 @@ for(i in 1:iters){
   CP[i] = out$cp
   d2[i] = out$Y_intercept
   
-  matplot(t(stat$t), type="l", col = rgb(200,1,1, 30, maxColorValue = 255))
+  if(plots)matplot(t(stat$t), type="l", col = rgb(200,1,1, 30, maxColorValue = 255))
   }
 
 save(A,B,C,CP,Pall,Pall2, file=paste0("Simulation_3_",format(Sys.time(), "%Y%m%d-%H%M"),".Rdata"))
