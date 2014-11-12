@@ -93,36 +93,40 @@ set.seed(seed)
 
 
 ### Simulation 4
-In this simulation, $M$ depends on $Z$ and $X$, $Y$ only depends on $M$ and not on $X$ (there is complete mediation).
+In this simulation, $M$ depends on $X$, $Y$ depends on $M$ and $X$.
 
 ```{r}
 Pall  = matrix(0, iters, len)
 Pall2 = matrix(0, iters, len)
 Flag  = rep(0, iters)
-A     = matrix(0, iters, len)
+d2    = matrix(0, iters, len)
 B     = matrix(0, iters, len)
-CP    = rep(0, iters)
-d2    = rep(0, iters)
+CP    = matrix(0, iters, len)
+d1    = rep(0, iters)
+A     = rep(0, iters)
 ptime = list()
 
 for(i in 1:iters){
   X          = rbinom(sub,1,0.5)
   
-  epsilon    = matrix(rnorm(sub*len,0,sd_epsilon), ncol=len,nrow=(sub))
+  epsilon    = rnorm(sub, 0, sd_epsilon) 
 
   design_M = cbind(int=1,X=X)
   coeff_M  = cbind(delta1,alpha)
   colnames(coeff_M) = c("delta1","alpha")
 
   M    = t(tcrossprod(coeff_M, design_M))+epsilon
+  M    = as.numeric(M)
+ 
+  eta  = matrix(rnorm(sub*len,0,sd_eta), ncol=len,nrow=(sub))
 
-  eta      <- rnorm(sub, 0, sd_eta) 
+  design_M_Y = cbind(int=1,X=X,M=M)
+  coeff_M_Y  = cbind(delta2,gamma, beta)
+  colnames(coeff_M_Y) = c("delta2","gamma","beta")
 
-  design_M_Y <- cbind(int=1,X=X,M=M)
-  coeff_M_Y  <- cbind(delta2,gamma, t(beta)*1/(ncol(M)-1))
 
   Y    <- t(tcrossprod(coeff_M_Y, design_M_Y)) + eta
-  Y    <- as.numeric(Y)
+  
 
   dta  = cbind('Y'=Y,'X'=X,'M' = M)
   
