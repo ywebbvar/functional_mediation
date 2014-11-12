@@ -1,6 +1,6 @@
-#' Functional Mediation.
+#' Functional Mediation. Scalar stimulus - functional mediator - scalar outcome.
 #' 
-#' Fits a functional mediation model. Uses fda package
+#' Fits a functional mediation model. Uses fda and refund packages
 #'
 #' Fits a functional model as in Lindquist 2012 JASA.
 #' @param x a numeric vector with independent variable (treatment assignment)
