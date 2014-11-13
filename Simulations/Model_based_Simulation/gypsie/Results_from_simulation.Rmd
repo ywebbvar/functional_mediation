@@ -1,0 +1,18 @@
+---
+title: "Results from Simulation"
+author: "Yenny Webb-Vargas"
+date: "Thursday, November 13, 2014"
+output: html_document
+---
+
+
+```{r}
+load("Simulation_1")
+```
+
+```{r, echo=FALSE}
+matplot(t(A), type="l")
+matplot(t(B), type="l")
+matplot(t(Pall), type="l")
+matplot(t(Pall2), type="l")
+```
