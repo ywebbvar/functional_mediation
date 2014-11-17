@@ -170,17 +170,23 @@ A     = rep(0, iters)
 for(i in 1:iters){
   X          = rbinom(sub,1,0.5)
   
-  epsilon    = matrix(rnorm(sub*len,0,sd_epsilon), ncol=len,nrow=(sub))
+  epsilon    = rnorm(sub, 0, sd_epsilon) 
 
-  M    = epsilon
+  design_M = cbind(int=1,X=X)
+  coeff_M  = cbind(0,0)
+  colnames(coeff_M) = c("delta1","alpha")
 
-  eta      <- rnorm(sub, 0, sd_eta) 
+  M    = t(tcrossprod(coeff_M, design_M))+epsilon
+  M    = as.numeric(M)
+ 
+  eta  = matrix(rnorm(sub*len,0,sd_eta), ncol=len,nrow=(sub))
 
-  design_M_Y <- cbind(int=1,X=X)
-  coeff_M_Y  <- cbind(delta2,gamma)
+  design_M_Y = cbind(int=1,X=X,M=M)
+  coeff_M_Y  = cbind(delta2,gamma, rep(0, length(beta)))
+  colnames(coeff_M_Y) = c("delta2","gamma","beta")
+
 
   Y    <- t(tcrossprod(coeff_M_Y, design_M_Y)) + eta
-  Y    <- as.numeric(Y)
 
   dta  = cbind('Y'=Y,'X'=X,'M' = M)
   
@@ -227,21 +233,23 @@ A     = rep(0, iters)
 for(i in 1:iters){
   X          = rbinom(sub,1,0.5)
   
-  epsilon    = matrix(rnorm(sub*len,0,sd_epsilon), ncol=len,nrow=(sub))
+  epsilon    = rnorm(sub, 0, sd_epsilon) 
 
   design_M = cbind(int=1,X=X)
   coeff_M  = cbind(delta1,alpha)
   colnames(coeff_M) = c("delta1","alpha")
 
   M    = t(tcrossprod(coeff_M, design_M))+epsilon
+  M    = as.numeric(M)
+ 
+  eta  = matrix(rnorm(sub*len,0,sd_eta), ncol=len,nrow=(sub))
 
-  eta      <- rnorm(sub, 0, sd_eta) 
+  design_M_Y = cbind(int=1,X=X,M=M)
+  coeff_M_Y  = cbind(delta2,gamma, rep(0, length(beta)))
+  colnames(coeff_M_Y) = c("delta2","gamma","beta")
 
-  design_M_Y <- cbind(int=1,X=X)
-  coeff_M_Y  <- cbind(delta2,gamma)
 
   Y    <- t(tcrossprod(coeff_M_Y, design_M_Y)) + eta
-  Y    <- as.numeric(Y)
 
   dta  = cbind('Y'=Y,'X'=X,'M' = M)
   
@@ -287,21 +295,23 @@ A     = rep(0, iters)
 for(i in 1:iters){
   X          = rbinom(sub,1,0.5)
   
-  epsilon    = matrix(rnorm(sub*len,0,sd_epsilon), ncol=len,nrow=(sub))
+  epsilon    = rnorm(sub, 0, sd_epsilon) 
 
-  design_M = rep(1,sub)
-  coeff_M  = cbind(delta1)
-  colnames(coeff_M) = c("delta1")
+  design_M = cbind(int=1,X=X)
+  coeff_M  = cbind(delta1,0)
+  colnames(coeff_M) = c("delta1","alpha")
 
   M    = t(tcrossprod(coeff_M, design_M))+epsilon
+  M    = as.numeric(M)
+ 
+  eta  = matrix(rnorm(sub*len,0,sd_eta), ncol=len,nrow=(sub))
 
-  eta      <- rnorm(sub, 0, sd_eta) 
+  design_M_Y = cbind(int=1,X=X,M=M)
+  coeff_M_Y  = cbind(delta2,rep(0, length(gamma)), beta)
+  colnames(coeff_M_Y) = c("delta2","gamma","beta")
 
-  design_M_Y <- cbind(int=1,X=X,M=M)
-  coeff_M_Y  <- cbind(delta2,0, t(beta)*1/(ncol(M)-1))
 
   Y    <- t(tcrossprod(coeff_M_Y, design_M_Y)) + eta
-  Y    <- as.numeric(Y)
 
   dta  = cbind('Y'=Y,'X'=X,'M' = M)
   
