@@ -8,8 +8,8 @@ output: html_document
 This creates a simulation for a scalar-scalar-function mediation set-up. It is based on the "Simulation using splines. Original. In Gypsie", in file `Simulation_model_based_fRegress.Rmd`.
 
 ```{r}
-cluster = FALSE
-plots   = TRUE
+cluster = TRUE
+plots   = FALSE
 ```
 
 ```{r}

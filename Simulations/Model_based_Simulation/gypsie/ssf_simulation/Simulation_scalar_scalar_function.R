@@ -1,2 +1,2 @@
 library(knitr)
-knit("Simulation_model_based_fRegress.Rmd")
+knit("Simulation_scalar_scalar_function.Rmd")

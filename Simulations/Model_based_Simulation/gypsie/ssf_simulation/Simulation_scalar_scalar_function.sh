@@ -1,1 +1,1 @@
-Rscript Simulation_model_based_fRegress.R
+Rscript Simulation_scalar_scalar_function.R
