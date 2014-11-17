@@ -1,7 +1,7 @@
 ---
 title: "Simulation using splines. Original. In Gypsie"
 author: "Yenny Webb-Vargas"
-date: "Wednesday, September 17, 2014"
+date: "Monday, November 17, 2014"
 output: html_document
 ---
 
@@ -60,8 +60,8 @@ basis        = create.bspline.basis(rangeval = c(0,T_sup), nbasis = 30, norder=6
 eval.bspline = eval.basis(seq(0,1,length.out=len), basis)
 
 # Parameters for random errors
-sd_epsilon = 1
-sd_eta     = 1
+sd_epsilon = 0.01
+sd_eta     = 0.01
 ```
 
 Create parameters: covariate and treatment effects
@@ -150,7 +150,7 @@ for(i in 1:iters){
   if(plots)matplot(t(stat$t), type="l", col = rgb(200,1,1, 30, maxColorValue = 255))
   }
 
-save(A,B,d2,CP,Pall,Pall2, file=paste0("Simulation_4_",format(Sys.time(), "%Y%m%d-%H%M"),".Rdata"))
+save(A,B,d2,CP,Pall,Pall2, file=paste0("Simulation_4_nonoise_",format(Sys.time(), "%Y%m%d-%H%M"),".Rdata"))
 ```
 
 
@@ -206,7 +206,7 @@ for(i in 1:iters){
   if(plots)matplot(t(stat$t), type="l", col = rgb(200,1,1, 30, maxColorValue = 255))
   }
 
-save(A,B,d2,CP,Pall,Pall2, file=paste0("Simulation_1_",format(Sys.time(), "%Y%m%d-%H%M"),".Rdata"))
+save(A,B,d2,CP,Pall,Pall2, file=paste0("Simulation_1_nonoise_",format(Sys.time(), "%Y%m%d-%H%M"),".Rdata"))
 ```
 
 
@@ -267,7 +267,7 @@ for(i in 1:iters){
   if(plots)matplot(t(stat$t), type="l", col = rgb(200,1,1, 30, maxColorValue = 255))
   }
 
-save(A,B,d2,CP,Pall,Pall2, file=paste0("Simulation_2_",format(Sys.time(), "%Y%m%d-%H%M"),".Rdata"))
+save(A,B,d2,CP,Pall,Pall2, file=paste0("Simulation_2_nonoise_",format(Sys.time(), "%Y%m%d-%H%M"),".Rdata"))
 ```
 
 
@@ -326,5 +326,5 @@ for(i in 1:iters){
   if(plots)matplot(t(stat$t), type="l", col = rgb(200,1,1, 30, maxColorValue = 255))
   }
 
-save(A,B,d2,CP,Pall,Pall2, file=paste0("Simulation_3_",format(Sys.time(), "%Y%m%d-%H%M"),".Rdata"))
+save(A,B,d2,CP,Pall,Pall2, file=paste0("Simulation_3_nonoise_",format(Sys.time(), "%Y%m%d-%H%M"),".Rdata"))
 ```
