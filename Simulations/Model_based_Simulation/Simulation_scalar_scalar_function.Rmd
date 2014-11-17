@@ -98,13 +98,11 @@ In this simulation, $M$ depends on $X$, $Y$ depends on $M$ and $X$.
 ```{r}
 Pall  = matrix(0, iters, len)
 Pall2 = matrix(0, iters, len)
-Flag  = rep(0, iters)
 d2    = matrix(0, iters, len)
 B     = matrix(0, iters, len)
 G     = matrix(0, iters, len)
 d1    = rep(0, iters)
 A     = rep(0, iters)
-ptime = list()
 
 for(i in 1:iters){
   X          = rbinom(sub,1,0.5)
@@ -163,12 +161,11 @@ In this simulation, $M$ is pure noise (and is not dependent on $X$), and $Y$ onl
 ```{r}
 Pall  = matrix(0, iters, len)
 Pall2 = matrix(0, iters, len)
-Flag  = rep(0, iters)
-A     = matrix(0, iters, len)
+d2    = matrix(0, iters, len)
 B     = matrix(0, iters, len)
-CP    = rep(0, iters)
-d2    = rep(0, iters)
-ptime = list()
+G     = matrix(0, iters, len)
+d1    = rep(0, iters)
+A     = rep(0, iters)
 
 for(i in 1:iters){
   X          = rbinom(sub,1,0.5)
@@ -187,7 +184,7 @@ for(i in 1:iters){
 
   dta  = cbind('Y'=Y,'X'=X,'M' = M)
   
-  out  = fMediation_ML(X,Y,t(M),mediatorMethod="fosr2s", nbasis=nbasis,norder=norder,lambda=lambda, plot=plots, boot=FALSE)
+  out  = ssf_Mediation(X,t(Y),M,outcomeMethod="fosr2s", nbasis=nbasis,norder=norder,plot=plots, boot=FALSE)
   if(cluster==TRUE){
     stat = boot(data = dta, statistic = fbootstrap_ML,R = nboot,sim = "ordinary",stype = "i",parallel = "multicore",ncpus=10)
     }else{
@@ -201,15 +198,16 @@ for(i in 1:iters){
                            colMeans(stat$t > 2*matrix(stat$t0, ncol=ncol(stat$t), nrow=nrow(stat$t), byrow = TRUE))),1, min)
   Pall2[i,] = 2*apply(cbind(colMeans(stat$t < matrix(stat$t0, ncol=ncol(stat$t), nrow=nrow(stat$t), byrow = TRUE)),
                             colMeans(stat$t > matrix(stat$t0, ncol=ncol(stat$t), nrow=nrow(stat$t), byrow = TRUE))), 1, min)
-  A[i,] = out$afunction
-  B[i,] = out$bfunction
-  CP[i] = out$cp
-  d2[i] = out$Y_intercept
+d2[i,] = out$y_path$delta2_function
+B[i,]  = out$y_path$beta_function
+G[i,]  = out$y_path$gamma_function
+d1[i]  = out$m_path$delta1
+A[i]   = out$m_path$alpha
   
   if(plots)matplot(t(stat$t), type="l", col = rgb(200,1,1, 30, maxColorValue = 255))
   }
 
-save(A,B,C,CP,Pall,Pall2, file=paste0("Simulation_1_",format(Sys.time(), "%Y%m%d-%H%M"),".Rdata"))
+save(d2,B,G,d1,A,Pall,Pall2, file=paste0("Simulation_1_",format(Sys.time(), "%Y%m%d-%H%M"),".Rdata"))
 ```
 
 
@@ -220,12 +218,11 @@ In this simulation, $M$ depends on $X$, but $Y$ only depends on $X$ and not on $
 ```{r}
 Pall  = matrix(0, iters, len)
 Pall2 = matrix(0, iters, len)
-Flag  = rep(0, iters)
-A     = matrix(0, iters, len)
+d2    = matrix(0, iters, len)
 B     = matrix(0, iters, len)
-CP    = rep(0, iters)
-d2    = rep(0, iters)
-ptime = list()
+G     = matrix(0, iters, len)
+d1    = rep(0, iters)
+A     = rep(0, iters)
 
 for(i in 1:iters){
   X          = rbinom(sub,1,0.5)
@@ -248,7 +245,7 @@ for(i in 1:iters){
 
   dta  = cbind('Y'=Y,'X'=X,'M' = M)
   
-  out  = fMediation_ML(X,Y,t(M),mediatorMethod="fosr2s", nbasis=nbasis,norder=norder,lambda=lambda, plot=plots, boot=FALSE)
+  out  = ssf_Mediation(X,t(Y),M,outcomeMethod="fosr2s", nbasis=nbasis,norder=norder,plot=plots, boot=FALSE)
   if(cluster==TRUE){
     stat = boot(data = dta, statistic = fbootstrap_ML,R = nboot,sim = "ordinary",stype = "i",parallel = "multicore",ncpus=10)
     }else{
@@ -262,15 +259,16 @@ for(i in 1:iters){
                            colMeans(stat$t > 2*matrix(stat$t0, ncol=ncol(stat$t), nrow=nrow(stat$t), byrow = TRUE))),1, min)
   Pall2[i,] = 2*apply(cbind(colMeans(stat$t < matrix(stat$t0, ncol=ncol(stat$t), nrow=nrow(stat$t), byrow = TRUE)),
                             colMeans(stat$t > matrix(stat$t0, ncol=ncol(stat$t), nrow=nrow(stat$t), byrow = TRUE))), 1, min)
-  A[i,] = out$afunction
-  B[i,] = out$bfunction
-  CP[i] = out$cp
-  d2[i] = out$Y_intercept
+d2[i,] = out$y_path$delta2_function
+B[i,]  = out$y_path$beta_function
+G[i,]  = out$y_path$gamma_function
+d1[i]  = out$m_path$delta1
+A[i]   = out$m_path$alpha
   
   if(plots)matplot(t(stat$t), type="l", col = rgb(200,1,1, 30, maxColorValue = 255))
   }
 
-save(A,B,C,CP,Pall,Pall2, file=paste0("Simulation_2_",format(Sys.time(), "%Y%m%d-%H%M"),".Rdata"))
+save(d2,B,G,d1,A,Pall,Pall2, file=paste0("Simulation_2_",format(Sys.time(), "%Y%m%d-%H%M"),".Rdata"))
 ```
 
 
@@ -280,11 +278,11 @@ In this simulation, $M$ depends on $\delta_1$ for all subjects (and does not dep
 ```{r}
 Pall  = matrix(0, iters, len)
 Pall2 = matrix(0, iters, len)
-Flag  = rep(0, iters)
-A     = matrix(0, iters, len)
+d2    = matrix(0, iters, len)
 B     = matrix(0, iters, len)
-CP    = rep(0, iters)
-d2    = rep(0, iters)
+G     = matrix(0, iters, len)
+d1    = rep(0, iters)
+A     = rep(0, iters)
 
 for(i in 1:iters){
   X          = rbinom(sub,1,0.5)
@@ -307,7 +305,7 @@ for(i in 1:iters){
 
   dta  = cbind('Y'=Y,'X'=X,'M' = M)
   
-  out  = fMediation_ML(X,Y,t(M),mediatorMethod="fosr2s", nbasis=nbasis,norder=norder,lambda=lambda, plot=plots, boot=FALSE)
+  out  = ssf_Mediation(X,t(Y),M,outcomeMethod="fosr2s", nbasis=nbasis,norder=norder,plot=plots, boot=FALSE)
   if(cluster==TRUE){
     stat = boot(data = dta, statistic = fbootstrap_ML,R = nboot,sim = "ordinary",stype = "i",parallel = "multicore",ncpus=10)
     }else{
@@ -321,13 +319,14 @@ for(i in 1:iters){
                            colMeans(stat$t > 2*matrix(stat$t0, ncol=ncol(stat$t), nrow=nrow(stat$t), byrow = TRUE))),1, min)
   Pall2[i,] = 2*apply(cbind(colMeans(stat$t < matrix(stat$t0, ncol=ncol(stat$t), nrow=nrow(stat$t), byrow = TRUE)),
                             colMeans(stat$t > matrix(stat$t0, ncol=ncol(stat$t), nrow=nrow(stat$t), byrow = TRUE))), 1, min)
-  A[i,] = out$afunction
-  B[i,] = out$bfunction
-  CP[i] = out$cp
-  d2[i] = out$Y_intercept
+d2[i,] = out$y_path$delta2_function
+B[i,]  = out$y_path$beta_function
+G[i,]  = out$y_path$gamma_function
+d1[i]  = out$m_path$delta1
+A[i]   = out$m_path$alpha
   
   if(plots)matplot(t(stat$t), type="l", col = rgb(200,1,1, 30, maxColorValue = 255))
   }
 
-save(A,B,C,CP,Pall,Pall2, file=paste0("Simulation_3_",format(Sys.time(), "%Y%m%d-%H%M"),".Rdata"))
+save(d2,B,G,d1,A,Pall,Pall2, file=paste0("Simulation_3_",format(Sys.time(), "%Y%m%d-%H%M"),".Rdata"))
 ```
