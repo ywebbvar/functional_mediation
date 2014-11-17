@@ -16,9 +16,9 @@ plots   = TRUE
 library(refund)
 library(boot)
 if(cluster){
-  source('/home/bst/student/ywebbvar/Github/functional_mediation/fMediation_ML.R')
+  source('/home/bst/student/ywebbvar/Github/functional_mediation/ssf_Mediation.R')
   }else{
-  source('~/GitHub/functional_mediation/fMediation_ML.R')  
+  source('~/GitHub/functional_mediation/ssf_Mediation.R')  
   }
 ```
 
@@ -26,11 +26,11 @@ Defining bootstrap function:
 ```{r fbootstrap}
 fbootstrap_ML <- function(dta, index){
   dta = dta[index,]
-  Y = dta[,"Y"]
+  M = dta[,"M"]
   X = dta[,"X"]
-  M = t(dta[,seq(2+1,ncol(dta))])
+  Y = t(dta[,-c(grep("M",colnames(dta)), grep("X",colnames(dta)))])
   
-  result = fMediation_ML(X,Y,M,mediatorMethod="fosr2s", nbasis=nbasis,norder=norder,lambda=lambda, plot=FALSE, boot=TRUE)
+  result = ssf_Mediation(X,Y,M,outcomeMethod="fosr2s", nbasis=nbasis,norder=norder,plot=FALSE, boot=TRUE)
   return(result)
 }
 ```
@@ -101,7 +101,7 @@ Pall2 = matrix(0, iters, len)
 Flag  = rep(0, iters)
 d2    = matrix(0, iters, len)
 B     = matrix(0, iters, len)
-CP    = matrix(0, iters, len)
+G     = matrix(0, iters, len)
 d1    = rep(0, iters)
 A     = rep(0, iters)
 ptime = list()
@@ -130,7 +130,7 @@ for(i in 1:iters){
 
   dta  = cbind('Y'=Y,'X'=X,'M' = M)
   
-  out  = fMediation_ML(X,Y,t(M),mediatorMethod="fosr2s", nbasis=nbasis,norder=norder,lambda=lambda, plot=plots, boot=FALSE)
+  out  = ssf_Mediation(X,t(Y),M,outcomeMethod="fosr2s", nbasis=nbasis,norder=norder,plot=plots, boot=FALSE)
   if(cluster==TRUE){
     stat = boot(data = dta, statistic = fbootstrap_ML,R = nboot,sim = "ordinary",stype = "i",parallel = "multicore",ncpus=10)
     }else{
@@ -144,15 +144,16 @@ for(i in 1:iters){
                            colMeans(stat$t > 2*matrix(stat$t0, ncol=ncol(stat$t), nrow=nrow(stat$t), byrow = TRUE))),1, min)
   Pall2[i,] = 2*apply(cbind(colMeans(stat$t < matrix(stat$t0, ncol=ncol(stat$t), nrow=nrow(stat$t), byrow = TRUE)),
                             colMeans(stat$t > matrix(stat$t0, ncol=ncol(stat$t), nrow=nrow(stat$t), byrow = TRUE))), 1, min)
-  A[i,] = out$afunction
-  B[i,] = out$bfunction
-  CP[i] = out$cp
-  d2[i] = out$Y_intercept
+d2[i,] = out$y_path$delta2_function
+B[i,]  = out$y_path$beta_function
+G[i,]  = out$y_path$gamma_function
+d1[i]  = out$m_path$delta1
+A[i]   = out$m_path$alpha
   
   if(plots)matplot(t(stat$t), type="l", col = rgb(200,1,1, 30, maxColorValue = 255))
   }
 
-save(A,B,C,CP,Pall,Pall2, file=paste0("Simulation_4_",format(Sys.time(), "%Y%m%d-%H%M"),".Rdata"))
+save(d2,B,G,d1,A,Pall,Pall2, file=paste0("Simulation_4_",format(Sys.time(), "%Y%m%d-%H%M"),".Rdata"))
 ```
 
 
