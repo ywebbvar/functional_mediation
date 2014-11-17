@@ -1,4 +1,4 @@
-cd Github/Functional_Mediation/
+cd Github/functional_mediation/
 
 git pull
 
