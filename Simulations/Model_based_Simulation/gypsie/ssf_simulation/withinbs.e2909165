@@ -1,0 +1,7 @@
+
+
+processing file: Simulation_scalar_scalar_function.Rmd
+output file: Simulation_scalar_scalar_function.md
+
+Warning message:
+In grDevices::png(tempfile()) : unable to open connection to X11 display ''

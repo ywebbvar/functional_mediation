@@ -1,0 +1,7 @@
+
+
+processing file: Simulation_model_based_fRegress.Rmd
+output file: Simulation_model_based_fRegress.md
+
+Warning message:
+In grDevices::png(tempfile()) : unable to open connection to X11 display ''
