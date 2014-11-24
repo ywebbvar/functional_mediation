@@ -1,4 +1,4 @@
-#' Functional Mediation. Scalar stimulus - functional mediator - scalar outcome.
+#' Functional Mediation. Scalar stimulus - functional mediator - functional outcome.
 #' 
 #' Fits a functional mediation model. Uses fda and refund packages
 #'
