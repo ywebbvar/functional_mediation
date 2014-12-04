@@ -1,0 +1,113 @@
+---
+title: "Troubleshoot Mediator Model"
+author: "Yenny Webb-Vargas"
+output: html_document
+---
+
+This is code to troubleshoot the mediator model, which is a model with one scalar covariate and one functional covariate. 
+
+```{r}
+library(refund)
+library(mgcv)
+```
+
+# Small study
+```{r}
+sub=20
+```
+
+```{r simulation}
+len     = 50
+T_sup   = 1
+timevec = seq(0,T_sup, length.out=len)
+  
+# Create bspline basis set
+basis        = create.bspline.basis(rangeval = c(0,T_sup), nbasis = 30, norder=6)
+eval.bspline = eval.basis(seq(0,1,length.out=len), basis)
+
+# Parameters for random errors
+sd_epsilon = 1 #0.01 
+sd_eta     = 1 #0.01 
+
+# Create delta
+set.seed(2903)
+delta1_coef = c(rep(0,5), runif(5,-2,0), runif(10,0,2),rep(0,10)) 
+delta1      = eval.bspline%*%delta1_coef
+
+# Create alpha
+set.seed(493)
+alpha_coef = c(rep(0,10), runif(10,1,4), rep(0,10)) 
+alpha      = eval.bspline%*%alpha_coef
+
+# Create beta
+set.seed(84930)
+beta_coef = c(rep(0,15), runif(5,3,10), rep(0,10)) 
+beta      = eval.bspline%*%beta_coef
+
+delta2 = 5
+gamma  = 2
+
+matplot(cbind(delta1,alpha,beta), type="l")
+
+# Set seed
+seed = 632020
+set.seed(seed)
+
+
+# Generate data
+  X          = rbinom(sub,1,0.5)
+  
+  epsilon    = matrix(rnorm(sub*len,0,sd_epsilon), ncol=len,nrow=(sub))
+
+  design_M = cbind(int=1,X=X)
+  coeff_M  = cbind(delta1,alpha)
+
+  colnames(coeff_M) = c("delta1","alpha")
+
+  M   = t(tcrossprod(coeff_M, design_M))+epsilon
+
+  eta = rnorm(sub, 0, sd_eta) 
+
+  design_M_Y = cbind(int=1,X=X,M=M)
+  coeff_M_Y  = cbind(delta2,gamma, t(beta)*1/(ncol(M)-1))
+
+  Y    = t(tcrossprod(coeff_M_Y, design_M_Y)) + eta
+  Y    = as.numeric(Y)
+
+  dta  = cbind('Y'=Y,'X'=X,'M' = M)
+
+# Estimate functional parameter
+fit <- fgam(Y ~ X + lf(M,splinepars=list(k=ifelse(sub < 52, sub-2, 50),m=c(3,2))))
+predictions <- predict(fit)
+plot(fit)
+lines(seq(0,1,length=length(beta)), beta, col="blue")
+```
+
+
+# Medium study
+
+```{r}
+sub=50
+```
+
+```{r sim_medium, ref.label='simulation'}
+```
+
+# Large study
+
+```{r}
+sub=100
+```
+
+```{r sim_large, ref.label='simulation'}
+```
+
+
+# Very large study
+
+```{r}
+sub=1000
+```
+
+```{r sim_verylarge, ref.label='simulation'}
+```
