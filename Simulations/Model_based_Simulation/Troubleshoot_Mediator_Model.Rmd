@@ -11,9 +11,15 @@ library(refund)
 library(mgcv)
 ```
 
-# Small study
+# Varying study size
+
+## Small study
 ```{r}
 sub=20
+
+# Parameters for random errors
+sd_epsilon = 1 #0.01 
+sd_eta     = 1 #0.01 
 ```
 
 ```{r simulation}
@@ -24,10 +30,6 @@ timevec = seq(0,T_sup, length.out=len)
 # Create bspline basis set
 basis        = create.bspline.basis(rangeval = c(0,T_sup), nbasis = 30, norder=6)
 eval.bspline = eval.basis(seq(0,1,length.out=len), basis)
-
-# Parameters for random errors
-sd_epsilon = 1 #0.01 
-sd_eta     = 1 #0.01 
 
 # Create delta
 set.seed(2903)
@@ -84,30 +86,88 @@ lines(seq(0,1,length=length(beta)), beta, col="blue")
 ```
 
 
-# Medium study
+## Medium study
 
 ```{r}
 sub=50
+
+# Parameters for random errors
+sd_epsilon = 1 #0.01 
+sd_eta     = 1 #0.01 
 ```
 
 ```{r sim_medium, ref.label='simulation'}
 ```
 
-# Large study
+## Large study
 
 ```{r}
 sub=100
+
+# Parameters for random errors
+sd_epsilon = 1 #0.01 
+sd_eta     = 1 #0.01 
 ```
 
 ```{r sim_large, ref.label='simulation'}
 ```
 
 
-# Very large study
+## Very large study
 
 ```{r}
 sub=1000
+
+# Parameters for random errors
+sd_epsilon = 1 #0.01 
+sd_eta     = 1 #0.01 
 ```
 
 ```{r sim_verylarge, ref.label='simulation'}
 ```
+
+# Varying error in outcome model
+
+
+## Unit error
+
+```{r}
+sub=20
+
+# Parameters for random errors
+sd_epsilon = 1  #0.01 
+sd_eta     = 1 #0.01 
+```
+
+```{r sim_1, ref.label='simulation'}
+```
+
+## Decimal error
+
+```{r}
+sub=20
+
+# Parameters for random errors
+sd_epsilon = 1  #0.01 
+sd_eta     = 0.1 #0.01 
+```
+
+```{r sim_01, ref.label='simulation'}
+```
+
+
+## Centesimal error
+
+```{r}
+sub=20
+
+# Parameters for random errors
+sd_epsilon = 1  #0.01 
+sd_eta     = 0.01 #0.01 
+```
+
+```{r sim_001, ref.label='simulation'}
+```
+
+
+Conclusion: I was adding too much error to the outcome model. Using 0.1 as the standard deviation of the error for the outcome works better.
