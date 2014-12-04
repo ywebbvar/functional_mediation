@@ -10,17 +10,17 @@ This implements simulation for testing my functional mediation function.
 Load the library 'refund'. It also loads the library 'fda' among many others.
 
 ```{r}
-cluster = TRUE
-plots   = FALSE
+cluster = FALSE
+plots   = TRUE
 ```
 
 ```{r}
 library(refund)
 library(boot)
 if(cluster){
-  source('/home/bst/student/ywebbvar/Github/functional_mediation/fMediation_ML.R')
+  source('/home/bst/student/ywebbvar/Github/functional_mediation/sff_Mediation.R')
   }else{
-  source('~/GitHub/functional_mediation/fMediation_ML.R')  
+  source('~/GitHub/functional_mediation/sff_Mediation.R')  
   }
 ```
 
@@ -32,16 +32,18 @@ fbootstrap_ML <- function(dta, index){
   X = dta[,"X"]
   M = t(dta[,seq(2+1,ncol(dta))])
   
-  result = fMediation_ML(X,Y,M,mediatorMethod="fosr2s", nbasis=nbasis,norder=norder,lambda=lambda, plot=FALSE, boot=TRUE)
+  result = sff_Mediation(X,Y,M,mediatorMethod="fosr2s", nbasis=nbasis,norder=norder,lambda=lambda, plot=FALSE, boot=TRUE)
   return(result)
 }
 ```
+
+Defining 
 
 ```{r}
 sub=20
 nbasis = 50
 norder = 6
-lambda = 1e-8
+lambda = 1e-10
 
 if(cluster){
   iters   = 500  
@@ -60,8 +62,8 @@ basis        = create.bspline.basis(rangeval = c(0,T_sup), nbasis = 30, norder=6
 eval.bspline = eval.basis(seq(0,1,length.out=len), basis)
 
 # Parameters for random errors
-sd_epsilon = 0.01
-sd_eta     = 0.01
+sd_epsilon = 1
+sd_eta     = 1
 ```
 
 Create parameters: covariate and treatment effects
@@ -76,20 +78,28 @@ set.seed(493)
 alpha_coef = c(rep(0,10), runif(10,1,4), rep(0,10)) 
 alpha      = eval.bspline%*%alpha_coef
 
+# Create delta2
+set.seed(73390)
+delta2_coef = c(rep(0,5), runif(5,2,5), runif(12,-2,3),rep(0,8)) 
+delta2      = eval.bspline%*%delta2_coef
+
+# Create gamma
+set.seed(2939)
+gamma_coef = c(rep(0,11), runif(3,3,5),runif(3,6,8),runif(3,1,4), rep(0,10)) 
+gamma      = eval.bspline%*%gamma_coef
+
 # Create beta
 set.seed(84930)
 beta_coef = c(rep(0,15), runif(5,3,10), rep(0,10)) 
 beta      = eval.bspline%*%beta_coef
 
-delta2 = 5
-gamma  = 2
-
-if(plots) matplot(cbind(delta1,alpha,beta), type="l")
+if(plots) matplot(cbind(delta1,alpha), type="l")
+if(plots) matplot(cbind(delta2,gamma,beta), type="l")
 ```
 
 Setting seed:
 ```{r}
-seed = 632020
+seed = 58752
 set.seed(seed)
 ```
 
@@ -118,15 +128,18 @@ for(i in 1:iters){
 
   M    = t(tcrossprod(coeff_M, design_M))+epsilon
 
-  eta      <- rnorm(sub, 0, sd_eta) 
+  eta      = matrix(rnorm(sub*len,0,sd_eta), ncol=len,nrow=(sub))
 
-  design_M_Y <- cbind(int=1,X=X,M=M)
-  coeff_M_Y  <- cbind(delta2,gamma, t(beta)*1/(ncol(M)-1))
+  design_M_Y = cbind(int=1,X=X,M=M)
+  coeff_M_Y  = cbind(delta2,gamma, t(beta)*1/(ncol(M)-1))
+  coeff_M_Y  = cbind(delta2,gamma, beta)
+  colnames(coeff_M_Y) = c("delta2","gamma","beta")
 
+
+  
   Y    <- t(tcrossprod(coeff_M_Y, design_M_Y)) + eta
-  Y    <- as.numeric(Y)
 
-  dta  = cbind('Y'=Y,'X'=X,'M' = M)
+  dta  = data.frame(Y,X,M)
   
   out  = fMediation_ML(X,Y,t(M),mediatorMethod="fosr2s", nbasis=nbasis,norder=norder,lambda=lambda, plot=plots, boot=FALSE)
   if(cluster==TRUE){
