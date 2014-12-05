@@ -2,11 +2,12 @@
 #' 
 #' Fits a functional mediation model. Uses fda and refund packages
 #'
-#' Fits a functional model as in Lindquist 2012 JASA.
+#' Fits a functional model as in Lindquist 2012 JASA, but the defaults are different from that paper.
 #' @param x a numeric vector with independent variable (treatment assignment)
 #' @param y a numeric vector with final outcomes
 #' @param m a (\code{T} by \code{N}) matrix with mediator values. Each columns represents one observed functional mediator.
 #' @param mediatorMethod the method for model for mediator. "fRegress" fits a model by penalized from \code{fda} package, and  "fosr2" uses two-step function-on-scalar regression from \code{refund} package
+#' @param outcomeMethod functional regression method to use on outcome. "fgam" defaults to quartic P-splines with 2nd derivative order penalty and at most 50-dimensional basis  
 #' @param nbasis an integer variable specifying the number of basis functions. Argument for \code{\link[fda]{create.bspline.basis}}
 #' @param norder an integer specifying the order of b-splines, which is one higher than their degree. Argument for \code{\link[fda]{create.bspline.basis}}
 #' @param lambda a nonnegative real number specifying the amount of smoothing to be applied to the estimated functional parameters.
@@ -18,11 +19,11 @@
 #' @return ab The ab effect
 #' @return c The c effect
 #' @return cp The c' effect 
-#' @author Martin Lindquist <mlindquist@@jhu.edu>
+#' @author Martin Lindquist <mlindquist@@jhu.edu>, Yenny Webb-Vargas <yennywebb@gmail.com>
 #' @examples
-#' fMediation_ML(x,y,m,...)
+#' sfs_Mediation(x,y,m,...)
 
-fMediation_ML <- function(x,y,m,mediatorMethod="fosr2s", nbasis,norder,lambda=1e-8,pen=0.1, plot=FALSE, boot=FALSE){
+sfs_Mediation <- function(x,y,m,mediatorMethod="fosr2s", outcomeMethod="fgam", nbasis,norder,lambda=1e-8,pen=0.1, plot=FALSE, boot=FALSE){
   
   require(refund)
   
@@ -98,69 +99,134 @@ fMediation_ML <- function(x,y,m,mediatorMethod="fosr2s", nbasis,norder,lambda=1e
   ## Path x, m -> y  ###
   ######################
   
-  # Create Design matrix
-  mfdcell      = list()
-  
-  mfdcell[[1]] = confd
-  basis        = create.bspline.basis(c(0,T_sup), nbasis, norder)
-  mfdcell[[2]] = Data2fd(argvals = timevec, y = m, basis)
-  mfdcell[[3]] = fd(matrix(x,nrow=1,ncol=N),conbas)
-  
-  # Response variable
-  yfdPar = y
-  
-  # Create basis set for beta functions
-  betacell      = list()
-  betafd1       = fd(1,conbas)
-  betacell[[1]] = fdPar(betafd1)
-  betafdj       = fd(rep(0,nbasis), basis)
-  betafdPar     = fdPar(betafdj, lambda=lambda)
-  betacell[[2]] = betafdPar
-  betacell[[3]] = fdPar(betafd1)
-  
-  # Solve least-squares equation
-  fRegressCell = fRegress(yfdPar, mfdcell, betacell)
-  betaestcell  = fRegressCell[[4]]
-  bfun         = betaestcell[[2]]$fd
-  
-  # Calculate Standard Error
-  errmat     = y - fRegressCell[[5]]
-  ResY       = errmat
-  Sigma      = errmat%*%t(errmat)/N  # Originally, there was a 20 here, I assume it is the number of observations N
-  DfdPar     = fdPar(basis, 0, 1)
-  y2cMap     = smooth.basis(timevec,m,DfdPar)$y2cMap
-  stderrCell = fRegress.stderr(fRegressCell, y2cMap, Sigma)
-  tmp        = stderrCell[[1]]
-  
-  b_stderr = eval.fd(tfine, tmp[[2]]) # Std Error of b-function
-  
-  
-  
-  bf = eval.fd(tfine,bfun)            # Evaluate b-function  
-  b  = sum(bf)*(tfine[2]-tfine[1])    # Integral of b-function: b = \int bf(t) dt gives b-path
-  
-  if(mediatorMethod=="fRegress"){ 
-    abf = eval.fd(tfine,afun*bfun)      # ab-functions
+  if(outcomeMethod == "fRegress"){
+    
+    # Create Design matrix
+    mfdcell      = list()
+    
+    mfdcell[[1]] = confd
+    basis        = create.bspline.basis(c(0,T_sup), nbasis, norder)
+    mfdcell[[2]] = Data2fd(argvals = timevec, y = m, basis)
+    mfdcell[[3]] = fd(matrix(x,nrow=1,ncol=N),conbas)
+    
+    # Response variable
+    yfdPar = y
+    
+    # Create basis set for beta functions
+    betacell      = list()
+    betafd1       = fd(1,conbas)
+    betacell[[1]] = fdPar(betafd1)
+    betafdj       = fd(rep(0,nbasis), basis)
+    betafdPar     = fdPar(betafdj, lambda=lambda)
+    betacell[[2]] = betafdPar
+    betacell[[3]] = fdPar(betafd1)
+    
+    # Solve least-squares equation
+    fRegressCell = fRegress(yfdPar, mfdcell, betacell)
+    betaestcell  = fRegressCell[[4]]
+    bfun         = betaestcell[[2]]$fd
+    
+    # Calculate Standard Error
+    errmat     = y - fRegressCell[[5]]
+    ResY       = errmat
+    Sigma      = errmat%*%t(errmat)/N  # Originally, there was a 20 here, I assume it is the number of observations N
+    DfdPar     = fdPar(basis, 0, 1)
+    y2cMap     = smooth.basis(timevec,m,DfdPar)$y2cMap
+    stderrCell = fRegress.stderr(fRegressCell, y2cMap, Sigma)
+    tmp        = stderrCell[[1]]
+    
+    b_stderr = eval.fd(tfine, tmp[[2]]) # Std Error of b-function
+    
+    
+    
+    bf = eval.fd(tfine,bfun)            # Evaluate b-function  
+    b  = sum(bf)*(tfine[2]-tfine[1])    # Integral of b-function: b = \int bf(t) dt gives b-path
+    
+    if(mediatorMethod=="fRegress"){ 
+      abf = eval.fd(tfine,afun*bfun)      # ab-functions
+    }else{
+      abf = af*bf
+    }
+    ab  = sum(abf)*(tfine[2]-tfine[1])  # Integral of ab-function: ab = \int af(t)bf(t) dt gives ab-path
+    
+    tmp = eval.fd(tfine, betaestcell[[3]]$fd) # c'-path
+    cp  = tmp[1]
+    
+    tmp = eval.fd(tfine, betaestcell[[1]]$fd) # intercept
+    int  = tmp[1]
   }else{
-  abf = af*bf
+    if(outcomeMethod=="fgam"){
+      
+      fit = fgam(y ~ x + lf(m,splinepars=list(bs="ps", k=ifelse(N < 52, N-2, 50),m=c(3,2)))) # Defaults to quartic (m[1]=3) P-splines (bs="ps") with 2nd derivative order penalty (m[2]=2), and at most 50-dimensional basis 
+      
+      predictions = predict(fit)
+      newdata = data.frame(m.tmat = seq(0,1,length=len), L.m = seq(1,1,length=len))
+      sm = fit$smooth[[1]]
+      bf = PredictMat(sm, newdata)%*%fit$coef[-(1:2)]
+      b   = sum(bf)*(tfine[2] - tfine[1])
+      
+      ResY     = fit$residuals
+      
+      
+      sub.edf <- function(lab, edf) {
+        pos <- regexpr(":", lab)[1]
+        if (pos < 0) {
+          pos <- nchar(lab) - 1
+          lab <- paste(substr(lab, start = 1, stop = pos), 
+                       ",", round(edf, digits = 2), ")", sep = "")
+        }
+        else {
+          lab1 <- substr(lab, start = 1, stop = pos - 2)
+          lab2 <- substr(lab, start = pos - 1, stop = nchar(lab))
+          lab <- paste(lab1, ",", round(edf, digits = 2), lab2, 
+                       sep = "")
+        }
+        lab
+      }
+      
+      smooth_term = fit$smooth[[1]]
+      
+      first <- smooth_term$first.para
+      last <- smooth_term$last.para
+      
+      edf <- sum(fit$edf[first:last])
+      term.lab <- sub.edf(smooth_term$label, edf)
+      attr(smooth_term, "coefficients") <- fit$coefficients[first:last]
+      
+      raw <- fit$model[smooth_term$term][[1]]
+      n = 100
+      xx <- seq(min(raw), max(raw), length = n)
+      by  <- rep(1, n)
+      dat <- data.frame(x = seq(min(raw), max(raw), length = n), by = rep(1, n))
+      names(dat) <- c(smooth_term$term, smooth_term$by)
+      P = list()
+      P$X <- PredictMat(smooth_term, dat)
+      P$se.mult = qnorm(0.975)
+      
+      
+      P = myplot.mgcv.smooth(fit$smooth[[1]], P = NULL, data = fit$model)#, 
+      
+      se.fit <- sqrt(pmax(0, rowSums((P$X %*% 
+                                        fit$Vp[first:last, first:last, drop = FALSE]) * 
+                                       P$X)))
+      P$se <- se.fit * P$se.mult
+      
+      b_stderr = P$se
+      
+    }else{stop("outcomeMethod must be 'fgam' or 'fRegress'")}
   }
-  ab  = sum(abf)*(tfine[2]-tfine[1])  # Integral of ab-function: ab = \int af(t)bf(t) dt gives ab-path
   
-  tmp = eval.fd(tfine, betaestcell[[3]]$fd) # c'-path
-  cp  = tmp[1]
   
-  tmp = eval.fd(tfine, betaestcell[[1]]$fd) # intercept
-  int  = tmp[1]
-
+  
   # Plot results
   if(plot==TRUE){
     mipar = par()$mfrow
     par(mfrow=c(3,1))
-  
+    
     plot(tfine, af, type="l", main="'a' function")
     lines(tfine, af + 2*a_stderr, col="green")
     lines(tfine, af - 2*a_stderr, col="green")
-  
+    
     plot(tfine, eval.fd(tfine,bfun), type="l", main="'b' function")
     lines(tfine, bf + 2*b_stderr, col="green")
     lines(tfine, bf - 2*b_stderr, col="green")

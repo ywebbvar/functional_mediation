@@ -18,9 +18,9 @@ plots   = TRUE
 library(refund)
 library(boot)
 if(cluster){
-  source('/home/bst/student/ywebbvar/Github/functional_mediation/fMediation_ML.R')
+  source('/home/bst/student/ywebbvar/Github/functional_mediation/sfs_Mediation.R')
   }else{
-  source('~/GitHub/functional_mediation/fMediation_ML.R')  
+  source('~/GitHub/functional_mediation/sfs_Mediation.R')  
   }
 ```
 
@@ -60,8 +60,8 @@ basis        = create.bspline.basis(rangeval = c(0,T_sup), nbasis = 30, norder=6
 eval.bspline = eval.basis(seq(0,1,length.out=len), basis)
 
 # Parameters for random errors
-sd_epsilon = 1 #0.01 
-sd_eta     = 1 #0.01 
+sd_epsilon = 1 
+sd_eta     = 0.1 
 ```
 
 Create parameters: covariate and treatment effects
