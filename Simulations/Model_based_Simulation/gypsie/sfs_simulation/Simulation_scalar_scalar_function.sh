@@ -1,0 +1,1 @@
+Rscript Simulation_scalar_scalar_function.R
