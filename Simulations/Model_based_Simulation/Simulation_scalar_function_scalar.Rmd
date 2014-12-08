@@ -20,8 +20,10 @@ library(boot)
 library(mgcv)
 if(cluster){
   source('/home/bst/student/ywebbvar/Github/functional_mediation/sfs_Mediation.R')
+  source('/home/bst/student/ywebbvar/Github/functional_mediation/est_se_fgam.R')
   }else{
   source('~/GitHub/functional_mediation/sfs_Mediation.R')  
+  source('~/GitHub/functional_mediation/est_se_fgam.R')  
   }
 ```
 

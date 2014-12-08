@@ -27,7 +27,6 @@ sfs_Mediation <- function(x,y,m,mediatorMethod="fosr2s", outcomeMethod="fgam", n
   
   require(refund)
   require(mgcv)
-  source('~/GitHub/functional_mediation/est_se_fgam.R')
   
   len   = dim(m)[1]
   N     = dim(m)[2]
