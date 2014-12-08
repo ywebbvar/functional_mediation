@@ -1,11 +1,11 @@
 ---
 title: "Simulation scalar-function-scalar"
 author: "Yenny Webb-Vargas"
-date: "Monday, November 17, 2014"
+date: "Monday, December 8, 2014"
 output: html_document
 ---
 
-This implements simulation for testing my functional mediation function. I use an 'error-less' mediator in constructing $Y$.
+This implements simulation for testing my functional mediation function. It uses new function for mediation models scalar-function-scalar that implements gam estimation
 
 Load the library 'refund'. It also loads the library 'fda' among many others.
 
@@ -17,6 +17,7 @@ plots   = TRUE
 ```{r}
 library(refund)
 library(boot)
+library(mgcv)
 if(cluster){
   source('/home/bst/student/ywebbvar/Github/functional_mediation/sfs_Mediation.R')
   }else{
@@ -128,7 +129,7 @@ for(i in 1:iters){
 
   dta  = cbind('Y'=Y,'X'=X,'M' = M)
   
-  out  = fMediation_ML(X,Y,t(M),mediatorMethod="fosr2s", nbasis=nbasis,norder=norder,lambda=lambda, plot=plots, boot=FALSE)
+  out  = sfs_Mediation(X,Y,t(M),mediatorMethod="fosr2s", nbasis=nbasis,norder=norder,lambda=lambda, plot=plots, boot=FALSE)
   if(cluster==TRUE){
     stat = boot(data = dta, statistic = fbootstrap_ML,R = nboot,sim = "ordinary",stype = "i",parallel = "multicore",ncpus=10)
     }else{

@@ -1,29 +1,30 @@
-#' Finding the standard deviation of an GAM object
+#' Finding the estimate and standard deviation of a functional parameter in GAM
+#' object
 #' 
-#' Takes an GAM object and computes standard errors at each time point.
-#'
-#' Takes an GAM object and computes standard errors at each time point. It takes code from plot.mgcv.smooth and plot.gam
+#' Takes an GAM object, selects one smooth term, and computes estimated
+#' functional parameter and its standard error.
+#' 
+#' Takes an GAM object, selects one smooth term, and computes estimated
+#' functional parameter and its standard error. It takes code from
+#' plot.mgcv.smooth and plot.gam
 #' @param fit an GAM object
-#' @return P A list including 
+#' @param term an integer signaling the smooth term which parameters will be computed
+#' @return P A list including the predicted matrix of the smooth term, the estimate, and the standard error.
 #' @author Yenny Webb-Vargas <yennywebb@gmail.com>
 #' @examples
 #' se_fgam(fit)
-se_fgam = function(fit){
-  n = 100
-  smooth_term = fit$smooth[[1]]
+est_se_fgam = function(fit, term=1, n=100){
+  smooth_term = fit$smooth[[term]]
   
   first = smooth_term$first.para
   last  = smooth_term$last.para
   
   raw = fit$model[smooth_term$term][[1]]
-  xx = seq(min(raw), max(raw), length = n)
-  by  = rep(1, n)
   dat = data.frame(x = seq(min(raw), max(raw), length = n), by = rep(1, n))
   names(dat) = c(smooth_term$term, smooth_term$by)
   P = list()
   P$X = PredictMat(smooth_term, dat)
-  P$se.fit = sqrt(pmax(0, rowSums((P$X %*% 
-                                    fit$Vp[first:last, first:last, drop = FALSE]) * 
-                                   P$X)))
+  P$estimate = P$X%*%fit$coefficients[first:last]
+  P$se = sqrt(pmax(0, rowSums((P$X %*%fit$Vp[first:last, first:last, drop = FALSE])*P$X)))
   return(P)
 }
