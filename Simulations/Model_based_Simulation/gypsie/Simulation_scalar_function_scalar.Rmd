@@ -96,7 +96,7 @@ set.seed(seed)
 
 
 ### Simulation 4
-In this simulation, $M$ depends on $Z$ and $X$, $Y$ only depends on $M$ and not on $X$ (there is complete mediation).
+In this simulation, $M$ depends on $Z$ and $X$, $Y$ only depends on $M$ and $X$.
 
 ```{r}
 Pall  = matrix(0, iters, len)
