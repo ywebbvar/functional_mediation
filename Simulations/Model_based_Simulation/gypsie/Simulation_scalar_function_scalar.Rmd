@@ -33,7 +33,7 @@ fbootstrap_ML <- function(dta, index){
   X = dta[,"X"]
   M = t(dta[,seq(2+1,ncol(dta))])
   
-  result = fMediation_ML(X,Y,M,mediatorMethod="fosr2s", nbasis=nbasis,norder=norder,lambda=lambda, plot=FALSE, boot=TRUE)
+  result = sfs_Mediation(X,Y,M,mediatorMethod="fosr2s", outcomeMethod="fgam",nbasis=nbasis,norder=norder,lambda=lambda, plot=FALSE, boot=TRUE)
   return(result)
 }
 ```
@@ -130,7 +130,7 @@ for(i in 1:iters){
 
   dta  = cbind('Y'=Y,'X'=X,'M' = M)
   
-  out  = sfs_Mediation(X,Y,t(M),mediatorMethod="fosr2s", nbasis=nbasis,norder=norder,lambda=lambda, plot=plots, boot=FALSE)
+  out  = sfs_Mediation(X,Y,t(M),mediatorMethod="fosr2s", outcomeMethod="fgam",nbasis=nbasis,norder=norder,lambda=lambda, plot=plots, boot=FALSE)
   if(cluster==TRUE){
     stat = boot(data = dta, statistic = fbootstrap_ML,R = nboot,sim = "ordinary",stype = "i",parallel = "multicore",ncpus=10)
     }else{
