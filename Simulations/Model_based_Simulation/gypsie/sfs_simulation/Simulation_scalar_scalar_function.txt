@@ -2,6 +2,6 @@ cd Github/functional_mediation/
 
 git pull
 
-cd Simulations/Model_based_Simulation/gypsie/ssf_simulation
+cd Simulations/Model_based_Simulation/gypsie/sfs_simulation
 
-qsub -N withinbs -cwd -pe local 10 -R y -l mem_free=7G,h_vmem=8G, Simulation_scalar_scalar_function.sh
+qsub -N withinbs -cwd -pe local 10 -R y -l mem_free=7G,h_vmem=8G, Simulation_scalar_function_scalar.sh
