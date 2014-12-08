@@ -4,7 +4,7 @@
 #'
 #' Takes an GAM object and computes standard errors at each time point. It takes code from plot.mgcv.smooth and plot.gam
 #' @param fit an GAM object
-#' @return P A functional regression coefficient corresponding to a path
+#' @return P A list including 
 #' @author Yenny Webb-Vargas <yennywebb@gmail.com>
 #' @examples
 #' se_fgam(fit)
@@ -22,10 +22,8 @@ se_fgam = function(fit){
   names(dat) = c(smooth_term$term, smooth_term$by)
   P = list()
   P$X = PredictMat(smooth_term, dat)
-  P$se.mult = qnorm(0.975)
   P$se.fit = sqrt(pmax(0, rowSums((P$X %*% 
                                     fit$Vp[first:last, first:last, drop = FALSE]) * 
                                    P$X)))
-  P$CI = P$se.fit * P$se.mult
   return(P)
 }
