@@ -26,6 +26,8 @@
 sfs_Mediation <- function(x,y,m,mediatorMethod="fosr2s", outcomeMethod="fgam", nbasis,norder,lambda=1e-8,pen=0.1, plot=FALSE, boot=FALSE){
   
   require(refund)
+  require(mgcv)
+  source('~/GitHub/functional_mediation/est_se_fgam.R')
   
   len   = dim(m)[1]
   N     = dim(m)[2]
@@ -154,69 +156,28 @@ sfs_Mediation <- function(x,y,m,mediatorMethod="fosr2s", outcomeMethod="fgam", n
     
     tmp = eval.fd(tfine, betaestcell[[1]]$fd) # intercept
     int  = tmp[1]
+    
   }else{
     if(outcomeMethod=="fgam"){
-      
-      fit = fgam(y ~ x + lf(m,splinepars=list(bs="ps", k=ifelse(N < 52, N-2, 50),m=c(3,2)))) # Defaults to quartic (m[1]=3) P-splines (bs="ps") with 2nd derivative order penalty (m[2]=2), and at most 50-dimensional basis 
-      
-      predictions = predict(fit)
-      newdata = data.frame(m.tmat = seq(0,1,length=len), L.m = seq(1,1,length=len))
-      sm = fit$smooth[[1]]
-      bf = PredictMat(sm, newdata)%*%fit$coef[-(1:2)]
+      m = t(m)
+      fit  = fgam(y ~ x + lf(m,splinepars=list(bs="ps", k=ifelse(N < 52, N-2, 50),m=c(3,2)))) # Defaults to quartic (m[1]=3) P-splines (bs="ps") with 2nd derivative order penalty (m[2]=2), and at most 50-dimensional basis 
+      bfun = fit$smooth[[1]]
+      P   = est_se_fgam(fit, term=1,n=len)
+      bf  = P$estimate
       b   = sum(bf)*(tfine[2] - tfine[1])
       
       ResY     = fit$residuals
-      
-      
-      sub.edf <- function(lab, edf) {
-        pos <- regexpr(":", lab)[1]
-        if (pos < 0) {
-          pos <- nchar(lab) - 1
-          lab <- paste(substr(lab, start = 1, stop = pos), 
-                       ",", round(edf, digits = 2), ")", sep = "")
-        }
-        else {
-          lab1 <- substr(lab, start = 1, stop = pos - 2)
-          lab2 <- substr(lab, start = pos - 1, stop = nchar(lab))
-          lab <- paste(lab1, ",", round(edf, digits = 2), lab2, 
-                       sep = "")
-        }
-        lab
-      }
-      
-      smooth_term = fit$smooth[[1]]
-      
-      first <- smooth_term$first.para
-      last <- smooth_term$last.para
-      
-      edf <- sum(fit$edf[first:last])
-      term.lab <- sub.edf(smooth_term$label, edf)
-      attr(smooth_term, "coefficients") <- fit$coefficients[first:last]
-      
-      raw <- fit$model[smooth_term$term][[1]]
-      n = 100
-      xx <- seq(min(raw), max(raw), length = n)
-      by  <- rep(1, n)
-      dat <- data.frame(x = seq(min(raw), max(raw), length = n), by = rep(1, n))
-      names(dat) <- c(smooth_term$term, smooth_term$by)
-      P = list()
-      P$X <- PredictMat(smooth_term, dat)
-      P$se.mult = qnorm(0.975)
-      
-      
-      P = myplot.mgcv.smooth(fit$smooth[[1]], P = NULL, data = fit$model)#, 
-      
-      se.fit <- sqrt(pmax(0, rowSums((P$X %*% 
-                                        fit$Vp[first:last, first:last, drop = FALSE]) * 
-                                       P$X)))
-      P$se <- se.fit * P$se.mult
-      
       b_stderr = P$se
+      
+      abf = af*bf
+      ab  = sum(abf)*(tfine[2]-tfine[1])  # Integral of ab-function: ab = \int af(t)bf(t) dt gives ab-path
+      
+      cp  = fit$coef["x"]
+      int = fit$coef["(Intercept)"]
+      
       
     }else{stop("outcomeMethod must be 'fgam' or 'fRegress'")}
   }
-  
-  
   
   # Plot results
   if(plot==TRUE){
@@ -227,7 +188,7 @@ sfs_Mediation <- function(x,y,m,mediatorMethod="fosr2s", outcomeMethod="fgam", n
     lines(tfine, af + 2*a_stderr, col="green")
     lines(tfine, af - 2*a_stderr, col="green")
     
-    plot(tfine, eval.fd(tfine,bfun), type="l", main="'b' function")
+    plot(tfine, bf, type="l", main="'b' function")
     lines(tfine, bf + 2*b_stderr, col="green")
     lines(tfine, bf - 2*b_stderr, col="green")
     
