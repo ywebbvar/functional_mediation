@@ -18,6 +18,7 @@ plots   = TRUE
 library(refund)
 library(boot)
 library(mgcv)
+library(parallel)
 if(cluster){
   source('/home/bst/student/ywebbvar/Github/functional_mediation/sfs_Mediation.R')
   source('/home/bst/student/ywebbvar/Github/functional_mediation/est_se_fgam.R')
@@ -38,6 +39,15 @@ fbootstrap_ML <- function(dta, index){
   result = sfs_Mediation(X,Y,M,mediatorMethod="fosr2s", outcomeMethod="fgam",nbasis=nbasis,norder=norder,lambda=lambda, plot=FALSE, boot=TRUE)
   return(result)
 }
+boot_CI <- function(boot_obj,alpha = 0.05){
+  reps = boot_obj$R
+  s = apply(boot_obj$t,2, sort)
+  down = round(reps*alpha/2)
+  up = reps-down
+  f_lower = s[down,]
+  f_upper = s[up,]
+  return(cbind(LB=f_lower, UB=f_upper))
+}
 ```
 
 ```{r}
@@ -51,7 +61,7 @@ if(cluster){
   nboot   = 1000 
 }else{
   iters   = 1  
-  nboot   = 50 
+  nboot   = 1000
 }
 
 len     = 50
@@ -92,6 +102,8 @@ if(plots) matplot(cbind(delta1,alpha,beta), type="l")
 
 Setting seed:
 ```{r}
+ok <- RNGkind()
+RNGkind("L'Ecuyer-CMRG")
 seed = 632020
 set.seed(seed)
 ```
@@ -111,9 +123,9 @@ d2    = rep(0, iters)
 ptime = list()
 
 for(i in 1:iters){
-  X          = rbinom(sub,1,0.5)
+  X        = rbinom(sub,1,0.5)
   
-  epsilon    = matrix(rnorm(sub*len,0,sd_epsilon), ncol=len,nrow=(sub))
+  epsilon  = matrix(rnorm(sub*len,0,sd_epsilon), ncol=len,nrow=(sub))
 
   design_M = cbind(int=1,X=X)
   coeff_M  = cbind(delta1,alpha)
@@ -154,7 +166,7 @@ for(i in 1:iters){
   if(plots)matplot(t(stat$t), type="l", col = rgb(200,1,1, 30, maxColorValue = 255))
   }
 
-save(A,B,d2,CP,Pall,Pall2, file=paste0("Simulation_4_lesspenal_",format(Sys.time(), "%Y%m%d-%H%M"),".Rdata"))
+save(A,B,d2,CP,Pall,Pall2, file=paste0("Simulation_4_sfs_",format(Sys.time(), "%Y%m%d-%H%M"),".Rdata"))
 ```
 
 
@@ -210,7 +222,7 @@ for(i in 1:iters){
   if(plots)matplot(t(stat$t), type="l", col = rgb(200,1,1, 30, maxColorValue = 255))
   }
 
-save(A,B,d2,CP,Pall,Pall2, file=paste0("Simulation_1_lesspenal_",format(Sys.time(), "%Y%m%d-%H%M"),".Rdata"))
+save(A,B,d2,CP,Pall,Pall2, file=paste0("Simulation_1_sfs_",format(Sys.time(), "%Y%m%d-%H%M"),".Rdata"))
 ```
 
 
@@ -271,7 +283,7 @@ for(i in 1:iters){
   if(plots)matplot(t(stat$t), type="l", col = rgb(200,1,1, 30, maxColorValue = 255))
   }
 
-save(A,B,d2,CP,Pall,Pall2, file=paste0("Simulation_2_lesspenal_",format(Sys.time(), "%Y%m%d-%H%M"),".Rdata"))
+save(A,B,d2,CP,Pall,Pall2, file=paste0("Simulation_2_sfs_",format(Sys.time(), "%Y%m%d-%H%M"),".Rdata"))
 ```
 
 
@@ -330,5 +342,5 @@ for(i in 1:iters){
   if(plots)matplot(t(stat$t), type="l", col = rgb(200,1,1, 30, maxColorValue = 255))
   }
 
-save(A,B,d2,CP,Pall,Pall2, file=paste0("Simulation_3_lesspenal_",format(Sys.time(), "%Y%m%d-%H%M"),".Rdata"))
+save(A,B,d2,CP,Pall,Pall2, file=paste0("Simulation_3_sfs_",format(Sys.time(), "%Y%m%d-%H%M"),".Rdata"))
 ```
