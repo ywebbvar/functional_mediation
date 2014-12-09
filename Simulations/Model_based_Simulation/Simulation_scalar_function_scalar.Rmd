@@ -102,8 +102,7 @@ if(plots) matplot(cbind(delta1,alpha,beta), type="l")
 
 Setting seed:
 ```{r}
-ok <- RNGkind()
-RNGkind("L'Ecuyer-CMRG")
+if(cluster) RNGkind("L'Ecuyer-CMRG")
 seed = 632020
 set.seed(seed)
 ```
@@ -146,7 +145,7 @@ for(i in 1:iters){
   
   out  = sfs_Mediation(X,Y,t(M),mediatorMethod="fosr2s", outcomeMethod="fgam",nbasis=nbasis,norder=norder,lambda=lambda, plot=plots, boot=FALSE)
   if(cluster==TRUE){
-    stat = boot(data = dta, statistic = fbootstrap_ML,R = nboot,sim = "ordinary",stype = "i",parallel = "multicore",ncpus=10)
+    stat = boot(data = dta, statistic = fbootstrap_ML,R = nboot,sim = "ordinary",stype = "i", parallel = "multicore",ncpus=10)
     }else{
     stat = boot(data = dta, statistic = fbootstrap_ML,R = nboot,sim = "ordinary",stype = "i")
     }
