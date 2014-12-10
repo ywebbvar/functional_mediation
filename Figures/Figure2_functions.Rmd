@@ -1,0 +1,97 @@
+---
+title: "Figure1"
+author: "Yenny Webb-Vargas"
+date: "Tuesday, December 09, 2014"
+output: html_document
+---
+
+This is code to produce the lines that go into Fig 2 of the paper.
+
+```{r}
+library(refund)
+library(RColorBrewer)
+plots=TRUE
+```
+
+palette
+```{r}
+mypal = brewer.pal(5, "Dark2")
+```
+
+
+# Scalar-Function-Scalar
+
+
+```{r}
+sub=20
+nbasis = 50
+norder = 6
+lambda = 1e-10 #1e-14 when 0.01 sd_epsilon
+
+len     = 50
+T_sup   = 1
+timevec = seq(0,T_sup, length.out=len)
+  
+# Create bspline basis set
+basis        = create.bspline.basis(rangeval = c(0,T_sup), nbasis = 30, norder=6)
+eval.bspline = eval.basis(seq(0,1,length.out=len), basis)
+
+# Parameters for random errors
+sd_epsilon = 0.1 
+sd_eta     = 0.1 
+```
+
+Create parameters: covariate and treatment effects
+```{r sfs_gen_pars}
+# Create delta
+set.seed(2903)
+delta1_coef = c(rep(0,5), runif(5,-2,0), runif(10,0,2),rep(0,10)) 
+delta1      = eval.bspline%*%delta1_coef
+
+# Create alpha
+set.seed(493)
+alpha_coef = c(rep(0,10), runif(10,1,4), rep(0,10)) 
+alpha      = eval.bspline%*%alpha_coef
+
+# Create beta
+set.seed(84930)
+beta_coef = c(rep(0,15), runif(5,3,10), rep(0,10)) 
+beta      = eval.bspline%*%beta_coef
+
+delta2 = 5
+gamma  = 2
+
+if(plots) matplot(cbind(delta1,alpha,beta), type="l", main="Scalar-Function-Scalar")
+```
+
+```{r sfs_genM}
+seed = 632020
+set.seed(seed)
+
+  X        = rbinom(sub,1,0.5)
+  
+  epsilon  = matrix(rnorm(sub*len,0,sd_epsilon), ncol=len,nrow=(sub))
+
+  design_M = cbind(int=1,X=X)
+  coeff_M  = cbind(delta1,alpha)
+
+  colnames(coeff_M) = c("delta1","alpha")
+
+  M   = t(tcrossprod(coeff_M, design_M))+epsilon
+```
+
+
+```{r sfs_M, fig.height=3,fig.width=5.5,dpi=300,fig.path='figure/'}
+plot(M[1,],type="l", col="black", xlab=NA,bty="n",ylab = NA,yaxt="n",lwd=10, cex.axis=2,cex.lab=2,xaxt='n')
+```
+
+```{r sfs_alpha, fig.height=3,fig.width=5.5,dpi=300,fig.path='figure/'}
+plot(alpha,type="l", col=mypal[1], xlab=NA,bty="n",ylab = NA,yaxt="n",lwd=10, cex.axis=2,cex.lab=2,xaxt='n')
+#axis(1,lwd=10)
+```
+
+```{r sfs_beta, fig.height=3,fig.width=5.5,dpi=300,fig.path='figure/'}
+plot(beta,type="l", col=mypal[2], xlab=NA,bty="n",ylab = NA,yaxt="n",lwd=10, cex.axis=2,cex.lab=2,xaxt='n')
+#axis(1,lwd=10)
+```
+
