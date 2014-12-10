@@ -82,7 +82,7 @@ set.seed(seed)
 
 
 ```{r sfs_M, fig.height=3,fig.width=5.5,dpi=300,fig.path='figure/'}
-plot(M[1,],type="l", col="black", xlab=NA,bty="n",ylab = NA,yaxt="n",lwd=10, cex.axis=2,cex.lab=2,xaxt='n')
+plot(M[2,],type="l", col="black", xlab=NA,bty="n",ylab = NA,yaxt="n",lwd=10, cex.axis=2,cex.lab=2,xaxt='n')
 ```
 
 ```{r sfs_alpha, fig.height=3,fig.width=5.5,dpi=300,fig.path='figure/'}
@@ -95,3 +95,66 @@ plot(beta,type="l", col=mypal[2], xlab=NA,bty="n",ylab = NA,yaxt="n",lwd=10, cex
 #axis(1,lwd=10)
 ```
 
+
+```{r ssf_gen_pars}
+# Create delta2
+set.seed(73390)
+delta2_coef = c(rep(0,5), runif(5,2,5), runif(12,-2,3),rep(0,8)) 
+delta2      = eval.bspline%*%delta2_coef
+
+# Create gamma
+set.seed(2939)
+gamma_coef = c(rep(0,11), runif(3,3,5),runif(3,6,8),runif(3,1,4), rep(0,10)) 
+gamma      = eval.bspline%*%gamma_coef
+
+# Create beta
+set.seed(38923)
+beta_coef = c(rep(0,15), runif(5,3,7), rep(0,10)) 
+beta      = eval.bspline%*%beta_coef
+
+delta1 = 5
+alpha  = 3
+
+if(plots) matplot(cbind(delta2,gamma,beta), type="l")
+```
+
+```{r ssf_genY}
+seed = 279500
+set.seed(seed)
+
+sd_eta = 1
+
+  X          = rbinom(sub,1,0.5)
+  
+  epsilon    = rnorm(sub, 0, sd_epsilon) 
+
+  design_M = cbind(int=1,X=X)
+  coeff_M  = cbind(delta1,alpha)
+  colnames(coeff_M) = c("delta1","alpha")
+
+  M    = t(tcrossprod(coeff_M, design_M))+epsilon
+  M    = as.numeric(M)
+ 
+  eta  = matrix(rnorm(sub*len,0,sd_eta), ncol=len,nrow=(sub))
+
+  design_M_Y = cbind(int=1,X=X,M=M)
+  coeff_M_Y  = cbind(delta2,gamma, beta)
+  colnames(coeff_M_Y) = c("delta2","gamma","beta")
+
+
+  Y    <- t(tcrossprod(coeff_M_Y, design_M_Y)) + eta
+```
+
+
+```{r ssf_Y, fig.height=3,fig.width=5.5,dpi=300,fig.path='figure/'}
+plot(Y[2,],type="l", col="black", xlab=NA,bty="n",ylab = NA,yaxt="n",lwd=10, cex.axis=2,cex.lab=2,xaxt='n')
+```
+
+```{r ssf_gamma, fig.height=3,fig.width=5.5,dpi=300,fig.path='figure/'}
+plot(gamma,type="l", col=mypal[3], xlab=NA,bty="n",ylab = NA,yaxt="n",lwd=10, cex.axis=2,cex.lab=2,xaxt='n')
+```
+
+```{r ssf_beta, fig.height=3,fig.width=5.5,dpi=300,fig.path='figure/'}
+plot(beta,type="l", col=mypal[2], xlab=NA,bty="n",ylab = NA,yaxt="n",lwd=10, cex.axis=2,cex.lab=2,xaxt='n')
+#axis(1,lwd=10)
+```
