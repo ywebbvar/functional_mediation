@@ -1,0 +1,55 @@
+---
+title: "Results from Simulation"
+author: "Yenny Webb-Vargas"
+date: "Thursday, November 13, 2014"
+output: html_document
+---
+
+
+```{r}
+mydir = "~/GitHub/functional_mediation/Simulations/Model_based_Simulation/gypsie/ssf_simulation/"
+```
+
+# Results from simulation 1
+```{r, echo=FALSE}
+load(paste0(mydir,dir(mydir)[grep("Simulation_1", dir(mydir))]))
+matplot(t(d2), col = rgb(200,1,1, 30, maxColorValue = 255), type="l", main="Delta_2")
+matplot(t(B), col = rgb(200,1,1, 30, maxColorValue = 255), type="l", main="Beta")
+matplot(t(G), col = rgb(200,1,1, 30, maxColorValue = 255), type="l", main="Gamma")
+matplot(t(B*A), col = rgb(200,1,1, 30, maxColorValue = 255), type="l", main="Alpha*Beta")
+matplot(t(Pall), col = rgb(200,1,1, 30, maxColorValue = 255), type="l", main="P-value 1")
+matplot(t(Pall2), col = rgb(200,1,1, 30, maxColorValue = 255), type="l", main="P-value 2")
+```
+
+# Results from simulation 2
+```{r, echo=FALSE}
+load(paste0(mydir,dir(mydir)[grep("Simulation_2", dir(mydir))]))
+matplot(t(d2), col = rgb(200,1,1, 30, maxColorValue = 255), type="l", main="Delta_2")
+matplot(t(B), col = rgb(200,1,1, 30, maxColorValue = 255), type="l", main="Beta")
+matplot(t(G), col = rgb(200,1,1, 30, maxColorValue = 255), type="l", main="Gamma")
+matplot(t(B*A), col = rgb(200,1,1, 30, maxColorValue = 255), type="l", main="Alpha*Beta")
+matplot(t(Pall), col = rgb(200,1,1, 30, maxColorValue = 255), type="l", main="P-value 1")
+matplot(t(Pall2), col = rgb(200,1,1, 30, maxColorValue = 255), type="l", main="P-value 2")
+```
+
+# Results from simulation 3
+```{r, echo=FALSE}
+load(paste0(mydir,dir(mydir)[grep("Simulation_3", dir(mydir))]))
+matplot(t(d2), col = rgb(200,1,1, 30, maxColorValue = 255), type="l", main="Delta_2")
+matplot(t(B), col = rgb(200,1,1, 30, maxColorValue = 255), type="l", main="Beta")
+matplot(t(G), col = rgb(200,1,1, 30, maxColorValue = 255), type="l", main="Gamma")
+matplot(t(B*A), col = rgb(200,1,1, 30, maxColorValue = 255), type="l", main="Alpha*Beta")
+matplot(t(Pall), col = rgb(200,1,1, 30, maxColorValue = 255), type="l", main="P-value 1")
+matplot(t(Pall2), col = rgb(200,1,1, 30, maxColorValue = 255), type="l", main="P-value 2")
+```
+
+# Results from simulation 4
+```{r, echo=FALSE}
+load(paste0(mydir,dir(mydir)[grep("Simulation_4", dir(mydir))]))
+matplot(t(d2), col = rgb(200,1,1, 30, maxColorValue = 255), type="l", main="Delta_2")
+matplot(t(B), col = rgb(200,1,1, 30, maxColorValue = 255), type="l", main="Beta")
+matplot(t(G), col = rgb(200,1,1, 30, maxColorValue = 255), type="l", main="Gamma")
+matplot(t(B*A), col = rgb(200,1,1, 30, maxColorValue = 255), type="l", main="Alpha*Beta")
+matplot(t(Pall), col = rgb(200,1,1, 30, maxColorValue = 255), type="l", main="P-value 1")
+matplot(t(Pall2), col = rgb(200,1,1, 30, maxColorValue = 255), type="l", main="P-value 2")
+```
