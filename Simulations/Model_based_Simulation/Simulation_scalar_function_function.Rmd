@@ -63,7 +63,7 @@ eval.bspline = eval.basis(seq(0,1,length.out=len), basis)
 
 # Parameters for random errors
 sd_epsilon = 1
-sd_eta     = 1
+sd_eta     = 0.1
 ```
 
 Create parameters: covariate and treatment effects
@@ -90,16 +90,24 @@ gamma      = eval.bspline%*%gamma_coef
 
 # Create beta
 set.seed(84930)
-beta_coef = c(rep(0,15), runif(5,3,10), rep(0,10)) 
-beta      = eval.bspline%*%beta_coef
+beta_coef = c(rep(0,15), runif(10,3,5), runif(5,2,3)) 
+beta_line = eval.bspline%*%beta_coef
+ 
+beta = matrix(ncol=length(beta_line)*2, nrow=length(beta_line))
+for(i in 1:length(beta_line)) beta[i,] = c(rep(0, (i-1)), beta_line, rep(0,length(beta_line)-i+1))
+beta = beta[,(length(beta_line)+1):(length(beta_line)*2)]
 
-if(plots) matplot(cbind(delta1,alpha), type="l")
-if(plots) matplot(cbind(delta2,gamma,beta), type="l")
+if(plots){
+  matplot(cbind(delta1,alpha), type="l")
+  matplot(cbind(delta2,gamma), type="l")
+  image(t(beta), col  = gray((0:32)/32))
+  }
 ```
 
 Setting seed:
 ```{r}
-seed = 58752
+if(cluster) RNGkind("L'Ecuyer-CMRG")
+seed = 340953
 set.seed(seed)
 ```
 
