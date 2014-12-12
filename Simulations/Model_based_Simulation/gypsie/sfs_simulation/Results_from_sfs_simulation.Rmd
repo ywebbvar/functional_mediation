@@ -57,3 +57,39 @@ matplot(t(B*A), col = rgb(200,1,1, 30, maxColorValue = 255), type="l", main="Alp
 matplot(t(Pall), col = rgb(200,1,1, 30, maxColorValue = 255), type="l", main="P-value 1")
 matplot(t(Pall2), col = rgb(200,1,1, 30, maxColorValue = 255), type="l", main="P-value 2")
 ```
+
+
+# Plots with `ggplot`
+
+```{r}
+load(paste0(mydir,dir(mydir)[grep("Simulation_1", dir(mydir))]))
+
+alpha = A
+beta  = B
+gamma = CP
+delta2 = d2
+alphabeta = A*B
+
+R = nrow(A)
+
+for(i in 2:4){
+  load(paste0(mydir,dir(mydir)[grep(paste0("Simulation_",i), dir(mydir))]))
+  alpha = rbind(alpha, A)
+  beta  = rbind(beta, B)
+  gamma = rbind(gamma, CP)
+  delta2 = rbind(delta2, CP)
+  alphabeta = rbind(alphabeta, A*B)
+}
+```
+
+
+```{r sfs, fig.height=11,fig.width=8,dpi=300}
+par(mfrow=c(4,3))
+for(i in 1:4){
+  par(mar=c(1,1,2,1))
+  matplot(t(alpha[((i-1)*R+1):(R*i),]), col = rgb(200,1,1, 30, maxColorValue = 255), type="l", main="Alpha", xlab="time (s)", ylab=NA)
+  matplot(t(beta[((i-1)*R+1):(R*i),]), col = rgb(200,1,1, 30, maxColorValue = 255), type="l", main="Beta", xlab="time (s)", ylab=NA)
+  matplot(t(alphabeta[((i-1)*R+1):(R*i),]), col = rgb(200,1,1, 30, maxColorValue = 255), type="l", main="Alpha*Beta", xlab="time (s)", ylab=NA)
+}
+```
+
