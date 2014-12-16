@@ -98,42 +98,21 @@ sff_Mediation <- function(x,y,m,mediatorMethod="fosr2s", nbasis,norder,lambda=1e
   ## Path x, m -> y  ###
   ######################
   
-  # Create Design matrix
-  mfdcell      = list()
+  m = t(m)
+  fit  = pffr(y ~ x + ff(m,limits="s<t", integration="riemann", splinepars=list(bs="pss", k=ifelse(N < 52, N-2, 50),m=c(3,2)))) # Defaults to quartic (m[1]=3) P-splines (bs="ps") with 2nd derivative order penalty (m[2]=2), and at most 50-dimensional basis 
+  bfun = fit$smooth[[1]]
+  P   = est_se_fgam(fit, term=1,n=len)
+  bf  = P$estimate
+  b   = sum(bf)*(tfine[2] - tfine[1])
   
-  mfdcell[[1]] = confd
-  basis        = create.bspline.basis(c(0,T_sup), nbasis, norder)
-  mfdcell[[2]] = Data2fd(argvals = timevec, y = m, basis)
-  mfdcell[[3]] = fd(matrix(x,nrow=1,ncol=N),conbas)
+  ResY     = fit$residuals
+  b_stderr = P$se
   
-  # Response variable
-  yfdPar = y
+  abf = af*bf
+  ab  = sum(abf)*(tfine[2]-tfine[1])  # Integral of ab-function: ab = \int af(t)bf(t) dt gives ab-path
   
-  # Create basis set for beta functions
-  betacell      = list()
-  betafd1       = fd(1,conbas)
-  betacell[[1]] = fdPar(betafd1)
-  betafdj       = fd(rep(0,nbasis), basis)
-  betafdPar     = fdPar(betafdj, lambda=lambda)
-  betacell[[2]] = betafdPar
-  betacell[[3]] = fdPar(betafd1)
-  
-  # Solve least-squares equation
-  fRegressCell = fRegress(yfdPar, mfdcell, betacell)
-  betaestcell  = fRegressCell[[4]]
-  bfun         = betaestcell[[2]]$fd
-  
-  # Calculate Standard Error
-  errmat     = y - fRegressCell[[5]]
-  ResY       = errmat
-  Sigma      = errmat%*%t(errmat)/N  # Originally, there was a 20 here, I assume it is the number of observations N
-  DfdPar     = fdPar(basis, 0, 1)
-  y2cMap     = smooth.basis(timevec,m,DfdPar)$y2cMap
-  stderrCell = fRegress.stderr(fRegressCell, y2cMap, Sigma)
-  tmp        = stderrCell[[1]]
-  
-  b_stderr = eval.fd(tfine, tmp[[2]]) # Std Error of b-function
-  
+  cp  = fit$coef["x"]
+  int = fit$coef["(Intercept)"]
   
   
   bf = eval.fd(tfine,bfun)            # Evaluate b-function  
