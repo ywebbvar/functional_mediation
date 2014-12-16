@@ -26,7 +26,13 @@ if(cluster){
 
 Defining bootstrap function:
 ```{r fbootstrap}
-fbootstrap_ML <- function(dta, index){
+create_functional_y = function(x, m, etai, delta2=delta2, gamma=gamma, beta=beta){
+  m_mat = matrix(m, ncol=length(m), nrow=length(m), byrow=T)
+  y = delta2 + gamma*x + rowSums(beta*m_mat*1/(ncol(M)-1)) + etai
+  y
+}
+
+fbootstrap_ML = function(dta, index){
   dta = dta[index,]
   Y = dta[,"Y"]
   X = dta[,"X"]
@@ -85,12 +91,12 @@ delta2      = eval.bspline%*%delta2_coef
 
 # Create gamma
 set.seed(2939)
-gamma_coef = c(rep(0,11), runif(3,3,5),runif(3,6,8),runif(3,1,4), rep(0,10)) 
+gamma_coef = c(rep(0,11), runif(3,3,5),runif(3,4,6),runif(3,1,4), rep(0,10)) 
 gamma      = eval.bspline%*%gamma_coef
 
 # Create beta
 set.seed(84930)
-beta_coef = c(rep(0,15), runif(10,3,5), runif(5,2,3)) 
+beta_coef = c(rep(0,15), runif(10,6,8), runif(5,2,3)) 
 beta_line = eval.bspline%*%beta_coef
  
 beta = matrix(ncol=length(beta_line)*2, nrow=length(beta_line))
@@ -99,7 +105,7 @@ beta = beta[,(length(beta_line)+1):(length(beta_line)*2)]
 
 if(plots){
   matplot(cbind(delta1,alpha), type="l")
-  matplot(cbind(delta2,gamma), type="l")
+  matplot(cbind(delta2,gamma,beta_line), type="l")
   image(t(beta), col  = gray((0:32)/32))
   }
 ```
@@ -136,18 +142,15 @@ for(i in 1:iters){
 
   M    = t(tcrossprod(coeff_M, design_M))+epsilon
 
-  eta      = matrix(rnorm(sub*len,0,sd_eta), ncol=len,nrow=(sub))
+  eta  = matrix(rnorm(sub*len,0,sd_eta), ncol=len,nrow=(sub))
 
-  design_M_Y = cbind(int=1,X=X,M=M)
-  coeff_M_Y  = cbind(delta2,gamma, t(beta)*1/(ncol(M)-1))
-  coeff_M_Y  = cbind(delta2,gamma, beta)
-  colnames(coeff_M_Y) = c("delta2","gamma","beta")
-
+  Y    = t(sapply(1:sub, function(i) create_functional_y(x=X[i], m=M[i,], etai=eta[i,], delta2=delta2, gamma=gamma, beta=beta)))
 
   
-  Y    <- t(tcrossprod(coeff_M_Y, design_M_Y)) + eta
-
-  dta  = data.frame(Y,X,M)
+  fit  = pffr(y ~ x + ff(m,limits="s<t", integration="riemann", splinepars=list(bs="pss", k=ifelse(N < 52, N-2, 50),m=c(3,2)))) # Defaults to quartic (m[1]=3) P-splines (bs="ps") with 2nd derivative order penalty (m[2]=2), and at most 50-dimensional basis 
+  
+  
+  dta  = data.frame(X=X,M=M,Y=Y)
   
   out  = fMediation_ML(X,Y,t(M),mediatorMethod="fosr2s", nbasis=nbasis,norder=norder,lambda=lambda, plot=plots, boot=FALSE)
   if(cluster==TRUE){
