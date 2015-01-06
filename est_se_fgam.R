@@ -13,18 +13,28 @@
 #' @author Yenny Webb-Vargas <yennywebb@gmail.com>
 #' @examples
 #' se_fgam(fit)
-est_se_fgam = function(fit, term=1, n=100){
+est_se_fgam = function(fit, term=1, ff=FALSE, n=100){
+  require(mgcv)
   smooth_term = fit$smooth[[term]]
   
   first = smooth_term$first.para
   last  = smooth_term$last.para
   
   raw = fit$model[smooth_term$term][[1]]
-  dat = data.frame(x = seq(min(raw), max(raw), length = n), by = rep(1, n))
-  names(dat) = c(smooth_term$term, smooth_term$by)
-  P = list()
-  P$X = PredictMat(smooth_term, dat)
-  P$estimate = P$X%*%fit$coefficients[first:last]
-  P$se = sqrt(pmax(0, rowSums((P$X %*%fit$Vp[first:last, first:last, drop = FALSE])*P$X)))
+  if(ff == FALSE){
+    dat = data.frame(x = seq(min(raw), max(raw), length = n), by = rep(1, n))
+    names(dat) = c(smooth_term$term, smooth_term$by)
+    P = list()
+    P$X = PredictMat(smooth_term, dat)
+    P$estimate = P$X%*%fit$coefficients[first:last]
+    P$se = sqrt(pmax(0, rowSums((P$X %*%fit$Vp[first:last, first:last, drop = FALSE])*P$X)))
+  }else{
+    dat = data.frame(x = seq(min(raw), max(raw), length = n),y = seq(min(raw), max(raw), length = n), by = rep(1, n))
+    names(dat) = c(smooth_term$term, smooth_term$by)
+    P = list()
+    P$X = PredictMat(smooth_term, dat)
+    P$estimate = P$X%*%fit$coefficients[first:last]
+    P$se = sqrt(pmax(0, rowSums((P$X %*%fit$Vp[first:last, first:last, drop = FALSE])*P$X)))
+  }
   return(P)
 }

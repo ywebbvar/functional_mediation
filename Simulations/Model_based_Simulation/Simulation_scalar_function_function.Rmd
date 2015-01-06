@@ -146,9 +146,35 @@ for(i in 1:iters){
 
   Y    = t(sapply(1:sub, function(i) create_functional_y(x=X[i], m=M[i,], etai=eta[i,], delta2=delta2, gamma=gamma, beta=beta)))
 
+  N = sub
+  fit  = pffr(Y ~ X + ff(M,limits="s<t", integration="riemann", splinepars=list(bs="pss", k=ifelse(N < 52, N-2, 50),m=c(3,2)))) # Defaults to quartic (m[1]=3) P-splines (bs="ps") with 2nd derivative order penalty (m[2]=2), and at most 50-dimensional basis 
   
-  fit  = pffr(y ~ x + ff(m,limits="s<t", integration="riemann", splinepars=list(bs="pss", k=ifelse(N < 52, N-2, 50),m=c(3,2)))) # Defaults to quartic (m[1]=3) P-splines (bs="ps") with 2nd derivative order penalty (m[2]=2), and at most 50-dimensional basis 
+  d2fun = fit$smooth[["s(yindex.vec)"]]
+  Pd2   = est_se_fgam(fit, term="s(yindex.vec)",n=len)
+  d2f   = Pd2$estimate
+  d2_stderr = Pd2$se  
   
+  gfun = fit$smooth[["s(yindex.vec):X"]]
+  Pg   = est_se_fgam(fit, term="s(yindex.vec):X",n=len)
+  gf   = Pg$estimate
+  g_stderr = Pg$se  
+  
+  bfun = fit$smooth[["te(M.smat,M.tmat):L.M"]]
+  Pb   = est_se_fgam(fit, term="te(M.smat,M.tmat):L.M",n=len, ff=TRUE)
+  bf   = Pb$estimate
+  b_stderr = Pb$se  
+  
+  tfine = seq(0,1, length.out=len)
+  
+  plot(tfine, d2f, type="l", main="'b' function")
+    lines(tfine, d2f + 2*d2_stderr, col="green")
+    lines(tfine, d2f - 2*d2_stderr, col="green")
+      
+  plot(tfine, gf, type="l", main="'b' function")
+    lines(tfine, gf + 2*g_stderr, col="green")
+    lines(tfine, gf - 2*g_stderr, col="green")
+  
+  image(t(bf), col  = gray((0:32)/32))
   
   dta  = data.frame(X=X,M=M,Y=Y)
   
