@@ -59,7 +59,25 @@ matplot(t(Pall2), col = rgb(200,1,1, 30, maxColorValue = 255), type="l", main="P
 ```
 
 
-# Plots with `ggplot`
+```{r eval=FALSE}
+## Spaghetti and Smoother
+df <- data.frame(trt = factor(BR_tx, levels = c(1, 0), labels = c("High heat", 
+    "Low heat")), subjects = BR_subjects, BR)
+df$ID <- 1:nrow(df)
+long <- reshape(df, direction = "long", idvar = "ID", varying = paste0("V", 
+    4:26), v.names = "V")
+long <- long[order(long$ID, long$time), ]
+
+c <- ggplot(long, aes(y = V, x = time, colour = trt))
+
+c$labels <- list(x = "Time in seconds", y = "Intensity", colour = "Treatment Group")
+
+c + geom_path(data = long, aes(x = time, y = V, group = ID, colour = trt), size = 0.7, 
+    alpha = 0.05) + stat_smooth(size = 2, level = 0.95)
+```
+
+
+# Multiple Plots
 
 ```{r}
 load(paste0(mydir,dir(mydir)[grep("Simulation_1", dir(mydir))]))
@@ -76,14 +94,45 @@ for(i in 2:4){
   load(paste0(mydir,dir(mydir)[grep(paste0("Simulation_",i), dir(mydir))]))
   alpha = rbind(alpha, A)
   beta  = rbind(beta, B)
-  gamma = rbind(gamma, CP)
-  delta2 = rbind(delta2, CP)
+  gamma = c(gamma, CP)
+  delta2 = c(delta2, d2)
   alphabeta = rbind(alphabeta, A*B)
 }
 ```
 
+```{r}
+library(ggplot2)
+line_data = rbind(alpha,beta, alphabeta)
 
-```{r sfs, fig.height=11,fig.width=8,dpi=300}
+long_line = data.frame(ID=1:nrow(line_data), Simulation=rep(gl(4,R, labels=paste0("Simulation ",1:4)), 3), Parameter = as.character(gl(3,R*4, labels=c("Alpha","Beta", "Alpha*Beta"))), line_data)
+long_line = reshape(long_line, direction = "long", idvar = "ID", varying = paste0("X", 1:50), v.names = "BOLD")
+
+point_data = data.frame(ID=(max(long_line$ID)+(1:length(gamma))), 
+                        Simulation=gl(4,R, labels=paste0("Simulation ",1:4)),
+                        Parameter = "Gamma",
+                        time = max(long_line$time)/2,
+                        BOLD=gamma)
+
+all_data = rbind(point_data, long_line)
+all_data$Parameter = factor(all_data$Parameter, levels=c("Alpha", "Beta", "Alpha*Beta", "Gamma"))
+```
+
+```{r sfs, fig.height=8,fig.width=8,dpi=300, fig.path='C:/Users/Yenny/Dropbox/sharelatex/Functional_Mediation_Analysis/', include=FALSE}
+c = ggplot(data=all_data, aes(y = BOLD, x = time, colour = Simulation))
+c = c +facet_grid(Parameter ~ Simulation, scale="free")
+
+c$labels = list(x = "Time in seconds", y = "Intensity", colour = "Simulation")
+
+c = c + geom_path(data = long_line, aes(x = time, y = BOLD, group = ID, colour = Simulation), size = 0.7, alpha = 0.05) + guides(colour=FALSE)
+jit = position_jitter(width = 10)
+c = c + layer(data=point_data, position=jit, geom = "jitter", size = 2, alpha = 0.2)
+c
+#c = c + geom_boxplot(data=point_data)
+#c %+% long_line[ long_line$Parameter == "Alpha", ] # This changes the dataset used to plot
+```
+
+## Standard Plot, preserved for archives
+```{r eval=FALSE}
 par(mfrow=c(4,3))
 for(i in 1:4){
   par(mar=c(1,1,2,1))

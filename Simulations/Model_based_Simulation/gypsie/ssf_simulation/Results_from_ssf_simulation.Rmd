@@ -53,3 +53,62 @@ matplot(t(B*A), col = rgb(200,1,1, 30, maxColorValue = 255), type="l", main="Alp
 matplot(t(Pall), col = rgb(200,1,1, 30, maxColorValue = 255), type="l", main="P-value 1")
 matplot(t(Pall2), col = rgb(200,1,1, 30, maxColorValue = 255), type="l", main="P-value 2")
 ```
+
+
+
+# Multiple Plots
+
+```{r}
+load(paste0(mydir,dir(mydir)[grep("Simulation_1", dir(mydir))]))
+
+alpha = A
+delta1 = d1
+beta  = B
+gamma = G
+delta2 = d2
+alphabeta = A*B
+
+R = nrow(B)
+
+for(i in 2:4){
+  load(paste0(mydir,dir(mydir)[grep(paste0("Simulation_",i), dir(mydir))]))
+  alpha  = c(alpha, A)
+  delta1 = c(delta1, d1)
+  beta   = rbind(beta, B)
+  gamma  = rbind(gamma, G)
+  delta2 = rbind(delta2, d2)
+  alphabeta = rbind(alphabeta, A*B)
+}
+```
+
+```{r}
+library(ggplot2)
+line_data = rbind(beta, alphabeta,gamma)
+
+long_line = data.frame(ID=1:nrow(line_data), Simulation=rep(gl(4,R, labels=paste0("Simulation ",1:4)), 3), Parameter = as.character(gl(3,R*4, labels=c("Beta", "Alpha*Beta","Gamma"))), line_data)
+long_line = reshape(long_line, direction = "long", idvar = "ID", varying = paste0("X", 1:50), v.names = "BOLD")
+
+point_data = data.frame(ID=(max(long_line$ID)+(1:length(alpha))), 
+                        Simulation=gl(4,R, labels=paste0("Simulation ",1:4)),
+                        Parameter = "Alpha",
+                        time = max(long_line$time)/2,
+                        BOLD=alpha)
+
+all_data = rbind(point_data, long_line)
+all_data$Parameter = factor(all_data$Parameter, levels=c("Alpha", "Beta", "Alpha*Beta", "Gamma"))
+```
+
+```{r ssf, fig.height=8,fig.width=8,dpi=300, fig.path='C:/Users/Yenny/Dropbox/sharelatex/Functional_Mediation_Analysis/', include=TRUE}
+c = ggplot(data=all_data, aes(y = BOLD, x = time, colour = Simulation))
+c = c +facet_grid(Parameter ~ Simulation, scale="free")
+
+c$labels = list(x = "Time in seconds", y = "Intensity", colour = "Simulation")
+
+c = c + geom_path(data = long_line, aes(x = time, y = BOLD, group = ID, colour = Simulation), size = 0.7, alpha = 0.05) + guides(colour=FALSE)
+jit = position_jitter(width = 10)
+c = c + layer(data=point_data, position=jit, geom = "jitter", size = 2, alpha = 0.2)
+c
+#c = c + geom_boxplot(data=point_data)
+#c %+% long_line[ long_line$Parameter == "Alpha", ] # This changes the dataset used to plot
+```
+
