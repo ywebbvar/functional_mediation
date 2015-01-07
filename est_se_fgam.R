@@ -1,15 +1,19 @@
-#' Finding the estimate and standard deviation of a functional parameter in GAM
+#' Finding the estimate and standard deviation of a functional parameter in GAM 
 #' object
 #' 
-#' Takes an GAM object, selects one smooth term, and computes estimated
+#' Takes an GAM object, selects one smooth term, and computes estimated 
 #' functional parameter and its standard error.
 #' 
-#' Takes an GAM object, selects one smooth term, and computes estimated
-#' functional parameter and its standard error. It takes code from
+#' Takes an GAM object, selects one smooth term, and computes estimated 
+#' functional parameter and its standard error. It takes code from 
 #' plot.mgcv.smooth and plot.gam
 #' @param fit an GAM object
-#' @param term an integer signaling the smooth term which parameters will be computed
-#' @return P A list including the predicted matrix of the smooth term, the estimate, and the standard error.
+#' @param term an integer signaling the smooth term which parameters will be
+#'   computed
+#' @return P A list including the predicted matrix of the smooth term, the
+#'   estimate, and the standard error, if the smooth term is one-dimensional. If
+#'   the smooth term is two-dimensional, it returns the bidimensional estimate,
+#'   the bidimensional standard error, and the axes x and y.
 #' @author Yenny Webb-Vargas <yennywebb@gmail.com>
 #' @examples
 #' se_fgam(fit)
@@ -55,11 +59,11 @@ est_se_fgam = function(fit, term=1, ff=FALSE, n=100,n2 = 40,too.far = 0.1,trans 
     P = list()
     P$X = PredictMat(smooth_term, dat)
     P$fit = P$X%*%fit$coefficients[first:last]
-    P$se = sqrt(pmax(0, rowSums((P$X %*%fit$Vp[first:last, first:last, drop = FALSE])*P$X)))
     P$x = xm
     P$y = ym
-    P$estimate = matrix(trans(P$fit), n2, n2)
-    #image(P$x, P$y, matrix(trans(P$fit), n2, n2), col  = gray((0:32)/32))
+    P$estimate = t(matrix(trans(P$fit), n2, n2))
+    P$se = t(matrix(sqrt(pmax(0, rowSums((P$X %*%fit$Vp[first:last, first:last, drop = FALSE])*P$X))), n2,n2))
+    #image(P$x, P$y, P$estimate, n2, n2), col  = gray((0:32)/32))
   }
   return(P)
 }
