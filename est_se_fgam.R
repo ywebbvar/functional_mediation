@@ -13,7 +13,7 @@
 #' @author Yenny Webb-Vargas <yennywebb@gmail.com>
 #' @examples
 #' se_fgam(fit)
-est_se_fgam = function(fit, term=1, ff=FALSE, n=100,n2 = 40,too.far = 0.1){
+est_se_fgam = function(fit, term=1, ff=FALSE, n=100,n2 = 40,too.far = 0.1,trans = I){
   require(mgcv)
   smooth_term = fit$smooth[[term]]
   
@@ -33,9 +33,9 @@ est_se_fgam = function(fit, term=1, ff=FALSE, n=100,n2 = 40,too.far = 0.1){
     P$estimate = P$X%*%fit$coefficients[first:last]
     P$se = sqrt(pmax(0, rowSums((P$X %*%fit$Vp[first:last, first:last, drop = FALSE])*P$X)))
   }else{
-    xterm <- fit$term[3]
+    xterm <- smooth_term$term[1]
     xlabel <- xterm
-    yterm <- fit$term[4]
+    yterm <- smooth_term$term[2]
     ylabel <- yterm
     raw <- data.frame(x = as.numeric(data[xterm][[1]]), 
                       y = as.numeric(data[yterm][[1]]))
@@ -44,18 +44,22 @@ est_se_fgam = function(fit, term=1, ff=FALSE, n=100,n2 = 40,too.far = 0.1){
     ym <- seq(min(raw$y), max(raw$y), length = n2)
     xx <- rep(xm, n2)
     yy <- rep(ym, rep(n2, n2))
-    if (too.far > 0) 
+    if (too.far > 0){ 
       exclude <- exclude.too.far(xx, yy, raw$x, raw$y, 
                                  dist = too.far)
-    else exclude <- rep(FALSE, n2 * n2)
+    }else {exclude <- rep(FALSE, n2 * n2)}
     by <- rep(1, n2^2)
     dat <- data.frame(x = xx, y = yy, by = by)
-    names(dat) <- c(xterm, yterm, x$by)
+    names(dat) <- c(xterm, yterm, smooth_term$by)
     
     P = list()
     P$X = PredictMat(smooth_term, dat)
-    P$estimate = P$X%*%fit$coefficients[first:last]
+    P$fit = P$X%*%fit$coefficients[first:last]
     P$se = sqrt(pmax(0, rowSums((P$X %*%fit$Vp[first:last, first:last, drop = FALSE])*P$X)))
+    P$x = xm
+    P$y = ym
+    P$estimate = matrix(trans(P$fit), n2, n2)
+    #image(P$x, P$y, matrix(trans(P$fit), n2, n2), col  = gray((0:32)/32))
   }
   return(P)
 }
