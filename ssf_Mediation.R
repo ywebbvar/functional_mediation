@@ -5,7 +5,7 @@
 #' @param x a numeric vector with independent variable (treatment assignment) values
 #' @param m a numeric vector with mediator values
 #' @param y a (\code{T} by \code{N}) matrix with final outcome values. Each column represents one observed functional outcome.
-#' @param outcomeMethod the method for model for mediator. "fRegress" fits a model by penalized from \code{fda} package, and  "fosr2" uses two-step function-on-scalar regression from \code{refund} package
+#' @param outcomeMethod the method for model for mediator. "fRegress" fits a model by penalized from \code{fda} package, and  "fosr2s" uses two-step function-on-scalar regression from \code{refund} package
 #' @param nbasis an integer variable specifying the number of basis functions. Argument for \code{\link[fda]{create.bspline.basis}}
 #' @param norder an integer specifying the order of b-splines, which is one higher than their degree. Argument for \code{\link[fda]{create.bspline.basis}}
 #' @param plot is a logical scalar, if TRUE, the function will produce plots of the a, b and ab paths.
