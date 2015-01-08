@@ -64,10 +64,12 @@ sff_Mediation <- function(x,y,m,mediatorMethod="fosr2s", nbasis,norder,lambda=1e
     fRegressCell = fRegress(mfdPar, xfdcell, betacell)
     betaestcell  = fRegressCell[[4]]
     afun         = betaestcell[[2]]$fd
+    d1fun        = betaestcell[[1]]$fd
     
     tfine = seq(0,T_sup, length.out=len)
     af    = eval.fd(tfine,afun)
     a     = sum(af)*(tfine[2] - tfine[1])
+    d1f   = eval.fd(tfine,d1fun)
     
     ResM  = (m - eval.fd(tfine, fRegressCell[[5]]$fd))
     
@@ -80,6 +82,8 @@ sff_Mediation <- function(x,y,m,mediatorMethod="fosr2s", nbasis,norder,lambda=1e
     tmp        = stderrCell[[1]]
     
     a_stderr = eval.fd(tfine, tmp[[2]]) # Std Error of a-function
+    d1_stderr= eval.fd(tfine, tmp[[1]]) # Std Error of d1-function
+    
     #plotbeta(betaestlist = fRegressCell$betaestlist, betastderrlist = stderrCell$betastderrlist)
   }else{
     if(mediatorMethod=="fosr2s"){
@@ -88,67 +92,70 @@ sff_Mediation <- function(x,y,m,mediatorMethod="fosr2s", nbasis,norder,lambda=1e
       fit = fosr2s(Y = t(m), cbind(int=1,x=x), argvals = tfine, nbasis = 15, norder = 4, basistype = "bspline")
       af  = fit$est.func[,2]
       a   = sum(af)*(tfine[2] - tfine[1])
+      d1f = fit$est.func[,1]
       
       ResM     = t(t(m) - fit$yhat)
       a_stderr = fit$se.func[,2]
+      d1_stderr= fit$se.func[,1]
     }else{stop("mediatorMethod must be 'fRegress' or 'fosr2s'")}
   }
   
   ######################
   ## Path x, m -> y  ###
   ######################
-  
+  tfine = seq(0,T_sup, length.out=len)
+    
   m = t(m)
   fit  = pffr(y ~ x + ff(m,limits="s<t", integration="riemann", splinepars=list(bs="pss", k=ifelse(N < 52, N-2, 50),m=c(3,2)))) # Defaults to quartic (m[1]=3) P-splines (bs="ps") with 2nd derivative order penalty (m[2]=2), and at most 50-dimensional basis 
-  bfun = fit$smooth[[1]]
-  P   = est_se_fgam(fit, term=1,n=len)
-  bf  = P$estimate
+    
+  d2fun = fit$smooth[["s(yindex.vec)"]]
+  Pd2   = est_se_fgam(fit, term="s(yindex.vec)",n=len)
+  d2f   = Pd2$estimate
+  d2_stderr = Pd2$se  
+  
+  gfun = fit$smooth[["s(yindex.vec):x"]]
+  Pg   = est_se_fgam(fit, term="s(yindex.vec):x",n=len)
+  gf   = Pg$estimate
+  g_stderr = Pg$se  
+  
+  bfun = fit$smooth[["te(m.smat,m.tmat):L.m"]]
+  Pb   = est_se_fgam(fit, term="te(m.smat,m.tmat):L.m",n=len, ff=TRUE, n2=len)
+  bf   = Pb$estimate
   b   = sum(bf)*(tfine[2] - tfine[1])
+  b_stderr = Pb$se  
   
   ResY     = fit$residuals
-  b_stderr = P$se
   
-  abf = af*bf
-  ab  = sum(abf)*(tfine[2]-tfine[1])  # Integral of ab-function: ab = \int af(t)bf(t) dt gives ab-path
-  
-  cp  = fit$coef["x"]
-  int = fit$coef["(Intercept)"]
-  
-  
-  bf = eval.fd(tfine,bfun)            # Evaluate b-function  
-  b  = sum(bf)*(tfine[2]-tfine[1])    # Integral of b-function: b = \int bf(t) dt gives b-path
-  
-  if(mediatorMethod=="fRegress"){ 
-    abf = eval.fd(tfine,afun*bfun)      # ab-functions
-  }else{
-  abf = af*bf
-  }
-  ab  = sum(abf)*(tfine[2]-tfine[1])  # Integral of ab-function: ab = \int af(t)bf(t) dt gives ab-path
-  
-  tmp = eval.fd(tfine, betaestcell[[3]]$fd) # c'-path
-  cp  = tmp[1]
-  
-  tmp = eval.fd(tfine, betaestcell[[1]]$fd) # intercept
-  int  = tmp[1]
+  abf = matrix(af, byrow=T, ncol=len, nrow=len)*bf
+  ab  = sum(abf)*(tfine[2]-tfine[1])  # Integral of ab-function: ab(t) = \int af(t)bf(t,s)ds dt gives ab-path
 
   # Plot results
   if(plot==TRUE){
     mipar = par()$mfrow
-    par(mfrow=c(3,1))
-  
-    plot(tfine, af, type="l", main="'a' function")
+    par(mfrow=c(2,1),ask = TRUE)
+
+    plot(tfine, d1f, type="l", main="'Delta1' function")
+    lines(tfine, d1f + 2*d1_stderr, col="green")
+    lines(tfine, d1f - 2*d1_stderr, col="green")
+    
+    plot(tfine, af, type="l", main="'Alpha' function")
     lines(tfine, af + 2*a_stderr, col="green")
     lines(tfine, af - 2*a_stderr, col="green")
-  
-    plot(tfine, eval.fd(tfine,bfun), type="l", main="'b' function")
-    lines(tfine, bf + 2*b_stderr, col="green")
-    lines(tfine, bf - 2*b_stderr, col="green")
     
-    plot(tfine, abf, type="l", main="'ab' function")
-    par(mfrow=mipar)
-  }
-  #plot(x,y)
+    plot(tfine, d2f, type="l", main="'Delta2' function")
+    lines(tfine, d2f + 2*d2_stderr, col="green")
+    lines(tfine, d2f - 2*d2_stderr, col="green")
+    
+    plot(tfine, gf, type="l", main="'Gamma' function")
+    lines(tfine, gf + 2*g_stderr, col="green")
+    lines(tfine, gf - 2*g_stderr, col="green")
   
+    par(mfrow=c(1,1))
+    image(t(bf), col  = gray((0:32)/32), main="Beta function")
+    image(t(abf), col  = gray((0:32)/32), main="Alpha*Beta function")
+    par(mfrow=mipar, ask=FALSE)
+  }
+    
   if(boot==FALSE) {result = list('afunction' = af, 'a' = a, 'bfunction' = bf, 'abfunction' = abf, 'b' = b, 'ab' = ab, 'cp' = cp, 'Y_intercept' = int, 'x' = x, 'y' = y, 'm' = m,'tfine' = tfine,'b_stderr' = b_stderr,'ResM'= ResM,'ResY'= ResY)
   }else{
     result = abf
