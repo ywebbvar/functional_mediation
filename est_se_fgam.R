@@ -59,11 +59,11 @@ est_se_fgam = function(fit, term=1, ff=FALSE, n=100,n2 = 40,too.far = 0.1,trans 
     P = list()
     P$X = PredictMat(smooth_term, dat)
     P$fit = P$X%*%fit$coefficients[first:last]
-    P$x = xm
-    P$y = ym
+    P$s = xm
+    P$t = ym
     P$estimate = t(matrix(trans(P$fit), n2, n2))
     P$se = t(matrix(sqrt(pmax(0, rowSums((P$X %*%fit$Vp[first:last, first:last, drop = FALSE])*P$X))), n2,n2))
-    #image(P$x, P$y, P$estimate, n2, n2), col  = gray((0:32)/32))
+    #image(P$s, P$t, P$estimate, n2, n2), col  = gray((0:32)/32))
   }
   return(P)
 }
