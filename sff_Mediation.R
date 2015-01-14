@@ -89,14 +89,14 @@ sff_Mediation <- function(x,y,m,mediatorMethod="fosr2s", nbasis,norder,lambda=1e
     if(mediatorMethod=="fosr2s"){
       tfine = seq(0,T_sup, length.out=len)
       
-      fit = fosr2s(Y = t(m), cbind(int=1,x=x), argvals = tfine, nbasis = 15, norder = 4, basistype = "bspline")
-      af  = fit$est.func[,2]
+      fit_m = fosr2s(Y = t(m), cbind(int=1,x=x), argvals = tfine, nbasis = 15, norder = 4, basistype = "bspline")
+      af  = fit_m$est.func[,2]
       a   = sum(af)*(tfine[2] - tfine[1])
-      d1f = fit$est.func[,1]
+      d1f = fit_m$est.func[,1]
       
-      ResM     = t(t(m) - fit$yhat)
-      a_stderr = fit$se.func[,2]
-      d1_stderr= fit$se.func[,1]
+      ResM     = t(t(m) - fit_m$yhat)
+      a_stderr = fit_m$se.func[,2]
+      d1_stderr= fit_m$se.func[,1]
     }else{stop("mediatorMethod must be 'fRegress' or 'fosr2s'")}
   }
   
@@ -121,13 +121,12 @@ sff_Mediation <- function(x,y,m,mediatorMethod="fosr2s", nbasis,norder,lambda=1e
   bfun = fit$smooth[["te(m.smat,m.tmat):L.m"]]
   Pb   = est_se_fgam(fit, term="te(m.smat,m.tmat):L.m",n=len, ff=TRUE, n2=len)
   bf   = Pb$estimate
-  b   = sum(bf)*(tfine[2] - tfine[1])
   b_stderr = Pb$se  
   
   ResY     = fit$residuals
   
-  abf = matrix(af, byrow=T, ncol=len, nrow=len)*bf
-  ab  = sum(abf)*(tfine[2]-tfine[1])  # Integral of ab-function: ab(t) = \int af(t)bf(t,s)ds dt gives ab-path
+  abs = matrix(af, byrow=T, ncol=len, nrow=len)*bf # In bf, the columns are 's', while the rows are 't'
+  abf  = rowSums(abs)*(tfine[2]-tfine[1])  # Integral of ab-function: ab(t) = \int af(s)bf(t,s)ds dt gives ab-path
 
   # Plot results
   if(plot==TRUE){
@@ -151,14 +150,32 @@ sff_Mediation <- function(x,y,m,mediatorMethod="fosr2s", nbasis,norder,lambda=1e
     lines(tfine, gf - 2*g_stderr, col="green")
   
     par(mfrow=c(1,1))
-    image(t(bf), col  = gray((0:32)/32), main="Beta function")
-    image(t(abf), col  = gray((0:32)/32), main="Alpha*Beta function")
+    image(t(bf), col  = gray((0:32)/32), main="'Beta' function")
+    image(t(abs), col  = gray((0:32)/32), main="'Alpha*Beta' surface")
+    plot(tfine, abf, type="l", main="'Alpha*Beta' integral")
     par(mfrow=mipar, ask=FALSE)
   }
     
-  if(boot==FALSE) {result = list('afunction' = af, 'a' = a, 'bfunction' = bf, 'abfunction' = abf, 'b' = b, 'ab' = ab, 'cp' = cp, 'Y_intercept' = int, 'x' = x, 'y' = y, 'm' = m,'tfine' = tfine,'b_stderr' = b_stderr,'ResM'= ResM,'ResY'= ResY)
+  if(boot==FALSE) {result = list('afunction'  = af,  'a_stderr' = a_stderr, 
+                                 'd1function' = d1f, 'd1_stderr' = d1_stderr,  
+                                 'bsurface'   = bf,  'b_stderr' = b_stderr, 
+                                 'gfunction'  = gf,  'g_stderr' = g_stderr,
+                                 'd2function' = d2f, 'd2_stderr' = d2_stderr,  
+                                 'absurface'  = abs, 'abfunction' = abf, 
+                                 'x' = x, 
+                                 'y' = y, 
+                                 'm' = m,
+                                 'tfine' = tfine,'ResM'= ResM,'ResY'= ResY)
   }else{
-    result = abf
+    result = c(c(t(abs)), abf, af, c(t(bf)), gf, d1f,d2f)
+    names(result) = c(paste0('absurface_',  1:length(c(t(abs)))),
+                      paste0('abfunction_', 1:length(abf)),
+                      paste0('afunction_',  1:length(af)),
+                      paste0('bsurface_',   1:length(c(t(bf)))),
+                      paste0('gfunction_',  1:length(gf)),
+                      paste0('d1function_', 1:length(d1f)),
+                      paste0('d2function_', 1:length(d2f))
+                      )
   }
   
   return(result)
