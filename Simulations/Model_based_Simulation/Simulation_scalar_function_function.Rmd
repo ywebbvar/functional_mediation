@@ -175,13 +175,9 @@ save(all,Pall,Pall2, file=paste0("Simulation_4_",format(Sys.time(), "%Y%m%d-%H%M
 In this simulation, $M$ is pure noise (and is not dependent on $X$), and $Y$ only depends on $X$.
 
 ```{r}
-Pall  = matrix(0, iters, len)
-Pall2 = matrix(0, iters, len)
-A     = matrix(0, iters, len)
-B     = matrix(0, iters, len)
-CP    = rep(0, iters)
-d2    = rep(0, iters)
-ptime = list()
+Pall  = matrix(0, iters, (2*len^2+5*len)) #2 surfaces (abs, bf), 5 functions (abf,af,gf,d1,d2)
+Pall2 = matrix(0, iters, (2*len^2+5*len))
+all   = matrix(0, iters, (2*len^2+5*len))
 
 for(i in 1:iters){
   X          = rbinom(sub,1,0.5)
@@ -194,15 +190,15 @@ for(i in 1:iters){
 
   Y    = t(sapply(1:sub, function(i) create_functional_y(x=X[i], m=M[i,], etai=eta[i,], delta2=delta2, gamma=gamma, beta=matrix(0, ncol=length(beta), nrow=length(beta)))))
 
-  dta  = cbind('Y'=Y,'X'=X,'M' = M)
+ dta  = data.frame(X=X,M=M,Y=Y)
   
-  out  = fMediation_ML(X,Y,t(M),mediatorMethod="fosr2s", nbasis=nbasis,norder=norder,lambda=lambda, plot=plots, boot=TRUE)
+  out  = sff_Mediation(X,Y,t(M),mediatorMethod="fosr2s", nbasis=nbasis,norder=norder,lambda=lambda, plot=plots, boot=TRUE)
+  
   if(cluster==TRUE){
     stat = boot(data = dta, statistic = fbootstrap_ML,R = nboot,sim = "ordinary",stype = "i",parallel = "multicore",ncpus=10)
     }else{
     stat = boot(data = dta, statistic = fbootstrap_ML,R = nboot,sim = "ordinary",stype = "i")
     }
-
                 
   
   # Calculating p-value
@@ -222,13 +218,9 @@ save(all,Pall,Pall2, file=paste0("Simulation_1_",format(Sys.time(), "%Y%m%d-%H%M
 In this simulation, $M$ depends on $X$, but $Y$ only depends on $X$ and not on $M$.
 
 ```{r}
-Pall  = matrix(0, iters, len)
-Pall2 = matrix(0, iters, len)
-A     = matrix(0, iters, len)
-B     = matrix(0, iters, len)
-CP    = rep(0, iters)
-d2    = rep(0, iters)
-ptime = list()
+Pall  = matrix(0, iters, (2*len^2+5*len)) #2 surfaces (abs, bf), 5 functions (abf,af,gf,d1,d2)
+Pall2 = matrix(0, iters, (2*len^2+5*len))
+all   = matrix(0, iters, (2*len^2+5*len))
 
 for(i in 1:iters){
   X          = rbinom(sub,1,0.5)
@@ -276,12 +268,9 @@ save(all,Pall,Pall2, file=paste0("Simulation_2_",format(Sys.time(), "%Y%m%d-%H%M
 In this simulation, $M$ depends on $\delta_1$ for all subjects (and does not depend on $X$), $Y$ only depends on $M$ and not on $X$.
 
 ```{r}
-Pall  = matrix(0, iters, len)
-Pall2 = matrix(0, iters, len)
-A     = matrix(0, iters, len)
-B     = matrix(0, iters, len)
-CP    = rep(0, iters)
-d2    = rep(0, iters)
+Pall  = matrix(0, iters, (2*len^2+5*len)) #2 surfaces (abs, bf), 5 functions (abf,af,gf,d1,d2)
+Pall2 = matrix(0, iters, (2*len^2+5*len))
+all   = matrix(0, iters, (2*len^2+5*len))
 
 for(i in 1:iters){
   X          = rbinom(sub,1,0.5)
