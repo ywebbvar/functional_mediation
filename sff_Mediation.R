@@ -104,10 +104,10 @@ sff_Mediation <- function(x,y,m,mediatorMethod="fosr2s", nbasis,norder,lambda=1e
   ## Path x, m -> y  ###
   ######################
   tfine = seq(0,T_sup, length.out=len)
-    
+  
   m = t(m)
   fit  = pffr(y ~ x + ff(m,limits="s<t", integration="riemann", splinepars=list(bs="pss", k=ifelse(N < 52, N-2, 50),m=c(3,2)))) # Defaults to quartic (m[1]=3) P-splines (bs="ps") with 2nd derivative order penalty (m[2]=2), and at most 50-dimensional basis 
-    
+  
   d2fun = fit$smooth[["s(yindex.vec)"]]
   Pd2   = est_se_fgam(fit, term="s(yindex.vec)",n=len)
   d2f   = Pd2$estimate
@@ -127,12 +127,12 @@ sff_Mediation <- function(x,y,m,mediatorMethod="fosr2s", nbasis,norder,lambda=1e
   
   abs = matrix(af, byrow=T, ncol=len, nrow=len)*bf # In bf, the columns are 's', while the rows are 't'
   abf  = rowSums(abs)*(tfine[2]-tfine[1])  # Integral of ab-function: ab(t) = \int af(s)bf(t,s)ds dt gives ab-path
-
+  
   # Plot results
   if(plot==TRUE){
     mipar = par()$mfrow
     par(mfrow=c(2,1),ask = TRUE)
-
+    
     plot(tfine, d1f, type="l", main="'Delta1' function")
     lines(tfine, d1f + 2*d1_stderr, col="green")
     lines(tfine, d1f - 2*d1_stderr, col="green")
@@ -148,14 +148,14 @@ sff_Mediation <- function(x,y,m,mediatorMethod="fosr2s", nbasis,norder,lambda=1e
     plot(tfine, gf, type="l", main="'Gamma' function")
     lines(tfine, gf + 2*g_stderr, col="green")
     lines(tfine, gf - 2*g_stderr, col="green")
-  
+    
     par(mfrow=c(1,1))
     image(t(bf), col  = gray((0:32)/32), main="'Beta' function")
     image(t(abs), col  = gray((0:32)/32), main="'Alpha*Beta' surface")
     plot(tfine, abf, type="l", main="'Alpha*Beta' integral")
     par(mfrow=mipar, ask=FALSE)
   }
-    
+  
   if(boot==FALSE) {result = list('afunction'  = af,  'a_stderr' = a_stderr, 
                                  'd1function' = d1f, 'd1_stderr' = d1_stderr,  
                                  'bsurface'   = bf,  'b_stderr' = b_stderr, 
@@ -175,7 +175,7 @@ sff_Mediation <- function(x,y,m,mediatorMethod="fosr2s", nbasis,norder,lambda=1e
                       paste0('gfunction_',  1:length(gf)),
                       paste0('d1function_', 1:length(d1f)),
                       paste0('d2function_', 1:length(d2f))
-                      )
+    )
   }
   
   return(result)
