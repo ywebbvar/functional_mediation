@@ -37,9 +37,9 @@ create_functional_y = function(x, m, etai, delta2=delta2, gamma=gamma, beta=beta
 
 fbootstrap_ML = function(dta, index){
   dta = dta[index,]
-  Y = dta[,"Y"]
-  X = dta[,"X"]
-  M = t(dta[,seq(2+1,ncol(dta))])
+  Y = dta[,grep("Y", names(dta))]
+  X = dta[,grep("X", names(dta))]
+  M = t(dta[,grep("M", names(dta))])
   
   result = sff_Mediation(X,Y,M,mediatorMethod="fosr2s", nbasis=nbasis,norder=norder,lambda=lambda, plot=FALSE, boot=TRUE)
   return(result)
@@ -59,10 +59,10 @@ if(cluster){
   nboot   = 1000 
 }else{
   iters   = 1  
-  nboot   = 50 
+  nboot   = 10 
 }
 
-len     = 50
+len     = 40
 T_sup   = 1
 timevec = seq(0,T_sup, length.out=len)
   
@@ -150,7 +150,9 @@ for(i in 1:iters){
 
   dta  = data.frame(X=X,M=M,Y=Y)
   
-  out  = sff_Mediation(X,Y,t(M),mediatorMethod="fosr2s", nbasis=nbasis,norder=norder,lambda=lambda, plot=plots, boot=TRUE)
+  system.time(
+  out <- sff_Mediation(X,Y,t(M),mediatorMethod="fosr2s",penalty_ff=c(3,2), nbasis=nbasis,norder=norder,lambda=lambda, plot=TRUE, boot=TRUE) # Using cubic splines for tensor product in ff(), penalty=c(2,1)
+  )
   
   if(cluster==TRUE){
     stat = boot(data = dta, statistic = fbootstrap_ML,R = nboot,sim = "ordinary",stype = "i",parallel = "multicore",ncpus=10)
@@ -160,14 +162,13 @@ for(i in 1:iters){
 
   
   # Calculating p-value
-  Pall[i,] = 2*apply(cbind(colMeans(stat$t < 2*matrix(stat$t0, ncol=ncol(stat$t), nrow=nrow(stat$t), byrow = TRUE)),
-                           colMeans(stat$t > 2*matrix(stat$t0, ncol=ncol(stat$t), nrow=nrow(stat$t), byrow = TRUE))),1, min)
-  Pall2[i,] = 2*apply(cbind(colMeans(stat$t < matrix(stat$t0, ncol=ncol(stat$t), nrow=nrow(stat$t), byrow = TRUE)),
-                            colMeans(stat$t > matrix(stat$t0, ncol=ncol(stat$t), nrow=nrow(stat$t), byrow = TRUE))), 1, min)
+  Pall[i,] = 2*apply(cbind(colMeans(stat$t < 2*matrix(stat$t0, ncol=ncol(stat$t), nrow=nrow(stat$t), byrow = TRUE)),colMeans(stat$t > 2*matrix(stat$t0, ncol=ncol(stat$t), nrow=nrow(stat$t), byrow = TRUE))),1, min)
   all[i,] = stat$t0
   }
 
-save(all,Pall,Pall2, file=paste0("Simulation_4_",format(Sys.time(), "%Y%m%d-%H%M"),".Rdata"))
+colnames(Pall) = colnames(all) = names(stat$t0)
+
+#save(all,Pall,Pall2, file=paste0("Simulation_4_",format(Sys.time(), "%Y%m%d-%H%M"),".Rdata"))
 ```
 
 
