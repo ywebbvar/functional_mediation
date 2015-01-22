@@ -41,7 +41,7 @@ fbootstrap_ML = function(dta, index){
   X = dta[,grep("X", names(dta))]
   M = t(dta[,grep("M", names(dta))])
   
-  result = sff_Mediation(X,Y,M,mediatorMethod="fosr2s", nbasis=nbasis,norder=norder,lambda=lambda, plot=FALSE, boot=TRUE)
+  result = sff_Mediation(X,Y,M,mediatorMethod="fosr2s",penalty_ff=c(3,3),nbasis=nbasis,norder=norder,lambda=lambda, plot=FALSE, boot=TRUE)
   return(result)
 }
 ```
@@ -151,7 +151,7 @@ for(i in 1:iters){
   dta  = data.frame(X=X,M=M,Y=Y)
   
   system.time(
-  out <- sff_Mediation(X,Y,t(M),mediatorMethod="fosr2s",penalty_ff=c(3,2), nbasis=nbasis,norder=norder,lambda=lambda, plot=TRUE, boot=TRUE) # Using cubic splines for tensor product in ff(), penalty=c(2,1)
+  out <- sff_Mediation(X,Y,t(M),mediatorMethod="fosr2s",penalty_ff=c(3,3), nbasis=nbasis,norder=norder,lambda=lambda, plot=TRUE, boot=TRUE) # Using quartic splines with penalty on the third derivative for tensor product in ff(), penalty=c(3,3)
   )
   
   if(cluster==TRUE){
@@ -165,10 +165,12 @@ for(i in 1:iters){
   Pall[i,] = 2*apply(cbind(colMeans(stat$t < 2*matrix(stat$t0, ncol=ncol(stat$t), nrow=nrow(stat$t), byrow = TRUE)),colMeans(stat$t > 2*matrix(stat$t0, ncol=ncol(stat$t), nrow=nrow(stat$t), byrow = TRUE))),1, min)
   all[i,] = stat$t0
   }
+p_bf  = t(matrix(Pall[i,grep("^bsurface_", names(Pall[i,]))], len, len))
+p_abf = t(matrix(Pall[i,grep("absurface_", names(Pall[i,]))], len, len))
 
 colnames(Pall) = colnames(all) = names(stat$t0)
 
-#save(all,Pall,Pall2, file=paste0("Simulation_4_",format(Sys.time(), "%Y%m%d-%H%M"),".Rdata"))
+save(all,Pall,Pall2, file=paste0("Simulation_4_",format(Sys.time(), "%Y%m%d-%H%M"),".Rdata"))
 ```
 
 
@@ -177,7 +179,6 @@ In this simulation, $M$ is pure noise (and is not dependent on $X$), and $Y$ onl
 
 ```{r}
 Pall  = matrix(0, iters, (2*len^2+5*len)) #2 surfaces (abs, bf), 5 functions (abf,af,gf,d1,d2)
-Pall2 = matrix(0, iters, (2*len^2+5*len))
 all   = matrix(0, iters, (2*len^2+5*len))
 
 for(i in 1:iters){
@@ -205,8 +206,6 @@ for(i in 1:iters){
   # Calculating p-value
   Pall[i,] = 2*apply(cbind(colMeans(stat$t < 2*matrix(stat$t0, ncol=ncol(stat$t), nrow=nrow(stat$t), byrow = TRUE)),
                            colMeans(stat$t > 2*matrix(stat$t0, ncol=ncol(stat$t), nrow=nrow(stat$t), byrow = TRUE))),1, min)
-  Pall2[i,] = 2*apply(cbind(colMeans(stat$t < matrix(stat$t0, ncol=ncol(stat$t), nrow=nrow(stat$t), byrow = TRUE)),
-                            colMeans(stat$t > matrix(stat$t0, ncol=ncol(stat$t), nrow=nrow(stat$t), byrow = TRUE))), 1, min)
   all[i,] = stat$t0
   }
 
@@ -220,7 +219,6 @@ In this simulation, $M$ depends on $X$, but $Y$ only depends on $X$ and not on $
 
 ```{r}
 Pall  = matrix(0, iters, (2*len^2+5*len)) #2 surfaces (abs, bf), 5 functions (abf,af,gf,d1,d2)
-Pall2 = matrix(0, iters, (2*len^2+5*len))
 all   = matrix(0, iters, (2*len^2+5*len))
 
 for(i in 1:iters){
@@ -256,8 +254,6 @@ for(i in 1:iters){
   # Calculating p-value
   Pall[i,] = 2*apply(cbind(colMeans(stat$t < 2*matrix(stat$t0, ncol=ncol(stat$t), nrow=nrow(stat$t), byrow = TRUE)),
                            colMeans(stat$t > 2*matrix(stat$t0, ncol=ncol(stat$t), nrow=nrow(stat$t), byrow = TRUE))),1, min)
-  Pall2[i,] = 2*apply(cbind(colMeans(stat$t < matrix(stat$t0, ncol=ncol(stat$t), nrow=nrow(stat$t), byrow = TRUE)),
-                            colMeans(stat$t > matrix(stat$t0, ncol=ncol(stat$t), nrow=nrow(stat$t), byrow = TRUE))), 1, min)
   all[i,] = stat$t0
   }
 
@@ -270,7 +266,6 @@ In this simulation, $M$ depends on $\delta_1$ for all subjects (and does not dep
 
 ```{r}
 Pall  = matrix(0, iters, (2*len^2+5*len)) #2 surfaces (abs, bf), 5 functions (abf,af,gf,d1,d2)
-Pall2 = matrix(0, iters, (2*len^2+5*len))
 all   = matrix(0, iters, (2*len^2+5*len))
 
 for(i in 1:iters){
@@ -306,8 +301,6 @@ for(i in 1:iters){
   # Calculating p-value
   Pall[i,] = 2*apply(cbind(colMeans(stat$t < 2*matrix(stat$t0, ncol=ncol(stat$t), nrow=nrow(stat$t), byrow = TRUE)),
                            colMeans(stat$t > 2*matrix(stat$t0, ncol=ncol(stat$t), nrow=nrow(stat$t), byrow = TRUE))),1, min)
-  Pall2[i,] = 2*apply(cbind(colMeans(stat$t < matrix(stat$t0, ncol=ncol(stat$t), nrow=nrow(stat$t), byrow = TRUE)),
-                            colMeans(stat$t > matrix(stat$t0, ncol=ncol(stat$t), nrow=nrow(stat$t), byrow = TRUE))), 1, min)
   all[i,] = stat$t0
   }
 
