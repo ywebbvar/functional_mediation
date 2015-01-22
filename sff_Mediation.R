@@ -22,7 +22,7 @@
 #' @examples
 #' fMediation_ML(x,y,m,...)
 
-sff_Mediation <- function(x,y,m,mediatorMethod="fosr2s", penalty_ff=c(3,3),nbasis,norder,lambda=1e-8,pen=0.1, plot=FALSE, boot=FALSE){
+sff_Mediation <- function(x,y,m,mediatorMethod="fosr2s", penalty_ff=c(3,3),nbasis,norder,lambda=1e-8,pen=0.1, plot=FALSE, boot=FALSE, ask=FALSE){
   
   require(refund)
   
@@ -131,7 +131,7 @@ sff_Mediation <- function(x,y,m,mediatorMethod="fosr2s", penalty_ff=c(3,3),nbasi
   # Plot results
   if(plot==TRUE){
     mipar = par()$mfrow
-    par(mfrow=c(2,1),ask = TRUE)
+    par(mfrow=c(2,1),ask = ask)
     
     plot(tfine, d1f, type="l", main="'Delta1' function")
     lines(tfine, d1f + 2*d1_stderr, col="green")
