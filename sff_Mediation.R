@@ -22,7 +22,7 @@
 #' @examples
 #' fMediation_ML(x,y,m,...)
 
-sff_Mediation <- function(x,y,m,mediatorMethod="fosr2s", nbasis,norder,lambda=1e-8,pen=0.1, plot=FALSE, boot=FALSE){
+sff_Mediation <- function(x,y,m,mediatorMethod="fosr2s", penalty_ff=c(3,3),nbasis,norder,lambda=1e-8,pen=0.1, plot=FALSE, boot=FALSE){
   
   require(refund)
   
@@ -106,7 +106,7 @@ sff_Mediation <- function(x,y,m,mediatorMethod="fosr2s", nbasis,norder,lambda=1e
   tfine = seq(0,T_sup, length.out=len)
   
   m = t(m)
-  fit  = pffr(y ~ x + ff(m,limits="s<t", integration="riemann", splinepars=list(bs="pss", k=ifelse(N < 52, N-2, 50),m=c(3,2)))) # Defaults to quartic (m[1]=3) P-splines (bs="ps") with 2nd derivative order penalty (m[2]=2), and at most 50-dimensional basis 
+  fit  = pffr(y ~ x + ff(m,limits="s<t", integration="riemann", splinepars=list(bs="pss", k=ifelse(N < 52, N-2, 50),m=penalty_ff))) # Defaults to quartic (m[1]=3) P-splines (bs="ps") with 2nd derivative order penalty (m[2]=2), and at most 50-dimensional basis 
   
   d2fun = fit$smooth[["s(yindex.vec)"]]
   Pd2   = est_se_fgam(fit, term="s(yindex.vec)",n=len)
@@ -120,7 +120,7 @@ sff_Mediation <- function(x,y,m,mediatorMethod="fosr2s", nbasis,norder,lambda=1e
   
   bfun = fit$smooth[["te(m.smat,m.tmat):L.m"]]
   Pb   = est_se_fgam(fit, term="te(m.smat,m.tmat):L.m",n=len, ff=TRUE, n2=len)
-  bf   = Pb$estimate
+  bf   = Pb$estimate*lower.tri(Pb$estimate)
   b_stderr = Pb$se  
   
   ResY     = fit$residuals
