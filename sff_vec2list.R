@@ -8,7 +8,7 @@
 #' @param ask a logical scalar to indicate if R should ask before switching to the next plot
 #' @param returns a logical scalar to indicate whether output be produced. If \code{stat} is 'all', then a list with all functions and surfaces is returned. Else, a vector (for functions) or matrix (for surfaces) is returned.
 
-sff_vec2list <- function(result, len=NULL,result_names=names(result), stats="all", plot=TRUE, ask=TRUE, returns=FALSE){
+sff_vec2list <- function(result, len=NULL,result_names=names(result), stats="all", plot=FALSE, ask=TRUE, returns=TRUE){
   results = list()
   
   results$afunction  = result[grep('^afunction_', result_names)]
