@@ -44,7 +44,14 @@ fbootstrap_ML = function(dta, index){
   X = dta[,grep("X", names(dta))]
   M = t(dta[,grep("M", names(dta))])
   
-  result = sff_Mediation(X,Y,M,mediatorMethod="fosr2s",nbasis=nbasis,norder=norder,lambda=lambda, plot=FALSE, boot=TRUE)
+  result <- tryCatch(
+    {sff_Mediation(X,Y,M,mediatorMethod="fosr2s",nbasis=nbasis,norder=norder,lambda=lambda, plot=FALSE, boot=TRUE)
+     },
+    error=function(cond){
+      message(cond)
+      return(rep(NA,(2*nrow(M)^2+5*nrow(M))))
+    }
+    )
   return(result)
 }
 ```
@@ -62,7 +69,7 @@ if(cluster){
   nboot   = 1000 
 }else{
   iters   = 1  
-  nboot   = 10 
+  nboot   = 100 
 }
 
 len     = 40
@@ -152,26 +159,30 @@ for(i in 1:iters){
 
   dta  = data.frame(X=X,M=M,Y=Y)
   
-  out <- sff_Mediation(X,Y,t(M),mediatorMethod="fosr2s", nbasis=nbasis,norder=norder,lambda=lambda, plot=TRUE, boot=TRUE)
+  out <- sff_Mediation(X,Y,t(M),mediatorMethod="fosr2s", nbasis=nbasis,norder=norder,lambda=lambda, plot=plots, boot=TRUE)
   
   if(cluster==TRUE){
     stat = boot(data = dta, statistic = fbootstrap_ML,R = nboot,sim = "ordinary",stype = "i",parallel = "multicore",ncpus=10)
     }else{
-    stat = boot(data = dta, statistic = fbootstrap_ML,R = nboot,sim = "ordinary",stype = "i")
+      time1 = Sys.time()
+      stat = boot(data = dta, statistic = fbootstrap_ML,R = nboot,sim = "ordinary",stype = "i")
+      time2 = Sys.time()
     }
 
+  print(time2-time1)
   
   # Calculating p-value
-  Pall[i,] = 2*apply(cbind(colMeans(stat$t < 2*matrix(stat$t0, ncol=ncol(stat$t), nrow=nrow(stat$t), byrow = TRUE)),colMeans(stat$t > 2*matrix(stat$t0, ncol=ncol(stat$t), nrow=nrow(stat$t), byrow = TRUE))),1, min)
+  Pall[i,] = 2*apply(cbind(colMeans(stat$t < 2*matrix(stat$t0, ncol=ncol(stat$t), nrow=nrow(stat$t), byrow = TRUE), na.rm = TRUE),colMeans(stat$t > 2*matrix(stat$t0, ncol=ncol(stat$t), nrow=nrow(stat$t), byrow = TRUE), na.rm = TRUE)),1, min)
   all[i,] = stat$t0
   }
 
 colnames(Pall) = colnames(all) = colnames(stat$t) = names(stat$t0)
 
-sff_vec2list(Pall[1,], stats="bsurface", plot=TRUE, returns=FALSE)
-matplot(sapply(1:10, function(i) sff_vec2list(stat$t[i,], stats="abfunction")), type="l")
-
-save(all,Pall, file=paste0("Simulation_4_",format(Sys.time(), "%Y%m%d-%H%M"),".Rdata"))
+if(plots){
+  sff_vec2list(Pall[1,], stats="bsurface", plot=TRUE, returns=FALSE)
+  matplot(sapply(1:10, function(i) sff_vec2list(stat$t[i,], stats="abfunction")), type="l")
+}
+save(all,Pall, file=paste0("SFF_Simulation_4_",format(Sys.time(), "%Y%m%d-%H%M"),".Rdata"))
 ```
 
 
@@ -205,17 +216,18 @@ for(i in 1:iters){
                 
   
   # Calculating p-value
-  Pall[i,] = 2*apply(cbind(colMeans(stat$t < 2*matrix(stat$t0, ncol=ncol(stat$t), nrow=nrow(stat$t), byrow = TRUE)),
-                           colMeans(stat$t > 2*matrix(stat$t0, ncol=ncol(stat$t), nrow=nrow(stat$t), byrow = TRUE))),1, min)
+  Pall[i,] = 2*apply(cbind(colMeans(stat$t < 2*matrix(stat$t0, ncol=ncol(stat$t), nrow=nrow(stat$t), byrow = TRUE), na.rm = TRUE),colMeans(stat$t > 2*matrix(stat$t0, ncol=ncol(stat$t), nrow=nrow(stat$t), byrow = TRUE), na.rm = TRUE)),1, min)
   all[i,] = stat$t0
   }
 
 colnames(Pall) = colnames(all) = colnames(stat$t) = names(stat$t0)
 
-sff_vec2list(Pall[1,], stats="bsurface", plot=TRUE, returns=FALSE)
-matplot(sapply(1:10, function(i) sff_vec2list(stat$t[i,], stats="abfunction")), type="l")
+if(plots){
+  sff_vec2list(Pall[1,], stats="bsurface", plot=TRUE, returns=FALSE)
+  matplot(sapply(1:10, function(i) sff_vec2list(stat$t[i,], stats="abfunction")), type="l")
+}
 
-save(all,Pall, file=paste0("Simulation_1_",format(Sys.time(), "%Y%m%d-%H%M"),".Rdata"))
+save(all,Pall, file=paste0("SFF_Simulation_1_",format(Sys.time(), "%Y%m%d-%H%M"),".Rdata"))
 ```
 
 
@@ -244,7 +256,7 @@ for(i in 1:iters){
 
   dta  = data.frame(X=X,M=M,Y=Y)
  
-  out <- sff_Mediation(X,Y,t(M),mediatorMethod="fosr2s", nbasis=nbasis,norder=norder,lambda=lambda, plot=TRUE, boot=TRUE) 
+  out <- sff_Mediation(X,Y,t(M),mediatorMethod="fosr2s", nbasis=nbasis,norder=norder,lambda=lambda, plot=plots, boot=TRUE) 
 
   if(cluster==TRUE){
     stat = boot(data = dta, statistic = fbootstrap_ML,R = nboot,sim = "ordinary",stype = "i",parallel = "multicore",ncpus=10)
@@ -255,17 +267,18 @@ for(i in 1:iters){
                 
   
   # Calculating p-value
-  Pall[i,] = 2*apply(cbind(colMeans(stat$t < 2*matrix(stat$t0, ncol=ncol(stat$t), nrow=nrow(stat$t), byrow = TRUE)),
-                           colMeans(stat$t > 2*matrix(stat$t0, ncol=ncol(stat$t), nrow=nrow(stat$t), byrow = TRUE))),1, min)
+  Pall[i,] = 2*apply(cbind(colMeans(stat$t < 2*matrix(stat$t0, ncol=ncol(stat$t), nrow=nrow(stat$t), byrow = TRUE), na.rm = TRUE),colMeans(stat$t > 2*matrix(stat$t0, ncol=ncol(stat$t), nrow=nrow(stat$t), byrow = TRUE), na.rm = TRUE)),1, min)
   all[i,] = stat$t0
   }
 
 colnames(Pall) = colnames(all) = colnames(stat$t) = names(stat$t0)
 
-sff_vec2list(Pall[1,], stats="bsurface", plot=TRUE, returns=FALSE)
-matplot(sapply(1:10, function(i) sff_vec2list(stat$t[i,], stats="abfunction")), type="l")
+if(plots){
+  sff_vec2list(Pall[1,], stats="bsurface", plot=TRUE, returns=FALSE)
+  matplot(sapply(1:10, function(i) sff_vec2list(stat$t[i,], stats="abfunction")), type="l")
+}
 
-save(all,Pall, file=paste0("Simulation_2_",format(Sys.time(), "%Y%m%d-%H%M"),".Rdata"))
+save(all,Pall, file=paste0("SFF_Simulation_2_",format(Sys.time(), "%Y%m%d-%H%M"),".Rdata"))
 ```
 
 
@@ -293,7 +306,7 @@ for(i in 1:iters){
 
   dta  = data.frame(X=X,M=M,Y=Y)
   
-  out <- sff_Mediation(X,Y,t(M),mediatorMethod="fosr2s",nbasis=nbasis,norder=norder,lambda=lambda, plot=TRUE, boot=TRUE)
+  out <- sff_Mediation(X,Y,t(M),mediatorMethod="fosr2s",nbasis=nbasis,norder=norder,lambda=lambda, plot=plots, boot=TRUE)
 
   if(cluster==TRUE){
     stat = boot(data = dta, statistic = fbootstrap_ML,R = nboot,sim = "ordinary",stype = "i",parallel = "multicore",ncpus=10)
@@ -304,15 +317,16 @@ for(i in 1:iters){
                 
   
   # Calculating p-value
-  Pall[i,] = 2*apply(cbind(colMeans(stat$t < 2*matrix(stat$t0, ncol=ncol(stat$t), nrow=nrow(stat$t), byrow = TRUE)),
-                           colMeans(stat$t > 2*matrix(stat$t0, ncol=ncol(stat$t), nrow=nrow(stat$t), byrow = TRUE))),1, min)
+  Pall[i,] = 2*apply(cbind(colMeans(stat$t < 2*matrix(stat$t0, ncol=ncol(stat$t), nrow=nrow(stat$t), byrow = TRUE), na.rm = TRUE),colMeans(stat$t > 2*matrix(stat$t0, ncol=ncol(stat$t), nrow=nrow(stat$t), byrow = TRUE), na.rm = TRUE)),1, min)
   all[i,] = stat$t0
   }
 
 colnames(Pall) = colnames(all) = colnames(stat$t) = names(stat$t0)
 
-sff_vec2list(Pall[1,], stats="bsurface", plot=TRUE, returns=FALSE)
-matplot(sapply(1:10, function(i) sff_vec2list(stat$t[i,], stats="abfunction")), type="l")
+if(plots){
+  sff_vec2list(Pall[1,], stats="bsurface", plot=TRUE, returns=FALSE)
+  matplot(sapply(1:10, function(i) sff_vec2list(stat$t[i,], stats="abfunction")), type="l")
+}
 
-save(all,Pall, file=paste0("Simulation_3_",format(Sys.time(), "%Y%m%d-%H%M"),".Rdata"))
+save(all,Pall, file=paste0("SFF_Simulation_3_",format(Sys.time(), "%Y%m%d-%H%M"),".Rdata"))
 ```
