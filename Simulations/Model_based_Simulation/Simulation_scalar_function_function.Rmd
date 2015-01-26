@@ -20,10 +20,13 @@ library(boot)
 if(cluster){
   source('/home/bst/student/ywebbvar/Github/functional_mediation/sff_Mediation.R')
   source('/home/bst/student/ywebbvar/Github/functional_mediation/est_se_fgam.R')
+  source('/home/bst/student/ywebbvar/Github/functional_mediation/lplot.R')
+  source('/home/bst/student/ywebbvar/Github/functional_mediation/sff_vec2list.R')
   }else{
   source('~/GitHub/functional_mediation/sff_Mediation.R') 
   source('~/GitHub/functional_mediation/est_se_fgam.R')
   source('~/GitHub/functional_mediation/lplot.R')
+  source('~/GitHub/functional_mediation/sff_vec2list.R')
   }
 ```
 
@@ -165,12 +168,13 @@ for(i in 1:iters){
   Pall[i,] = 2*apply(cbind(colMeans(stat$t < 2*matrix(stat$t0, ncol=ncol(stat$t), nrow=nrow(stat$t), byrow = TRUE)),colMeans(stat$t > 2*matrix(stat$t0, ncol=ncol(stat$t), nrow=nrow(stat$t), byrow = TRUE))),1, min)
   all[i,] = stat$t0
   }
-p_bf  = t(matrix(Pall[i,grep("^bsurface_", names(Pall[i,]))], len, len))
-p_abf = t(matrix(Pall[i,grep("absurface_", names(Pall[i,]))], len, len))
 
-colnames(Pall) = colnames(all) = names(stat$t0)
+colnames(Pall) = colnames(all) = colnames(stat$t) = names(stat$t0)
 
-save(all,Pall,Pall2, file=paste0("Simulation_4_",format(Sys.time(), "%Y%m%d-%H%M"),".Rdata"))
+sff_vec2list(Pall[1,], stats="bsurface", plot=TRUE, returns=FALSE)
+matplot(sapply(1:10, function(i) sff_vec2list(stat$t[i,], stats="abfunction")), type="l")
+
+save(all,Pall, file=paste0("Simulation_4_",format(Sys.time(), "%Y%m%d-%H%M"),".Rdata"))
 ```
 
 
@@ -190,7 +194,7 @@ for(i in 1:iters){
 
   eta  = matrix(rnorm(sub*len,0,sd_eta), ncol=len,nrow=(sub))
 
-  Y    = t(sapply(1:sub, function(i) create_functional_y(x=X[i], m=M[i,], etai=eta[i,], delta2=delta2, gamma=gamma, beta=matrix(0, ncol=length(beta), nrow=length(beta)))))
+  Y    = t(sapply(1:sub, function(i) create_functional_y(x=X[i], m=M[i,], etai=eta[i,], delta2=delta2, gamma=gamma, beta=matrix(0, ncol=ncol(beta), nrow=nrow(beta)))))
 
  dta  = data.frame(X=X,M=M,Y=Y)
   
@@ -209,7 +213,12 @@ for(i in 1:iters){
   all[i,] = stat$t0
   }
 
-save(all,Pall,Pall2, file=paste0("Simulation_1_",format(Sys.time(), "%Y%m%d-%H%M"),".Rdata"))
+colnames(Pall) = colnames(all) = colnames(stat$t) = names(stat$t0)
+
+sff_vec2list(Pall[1,], stats="bsurface", plot=TRUE, returns=FALSE)
+matplot(sapply(1:10, function(i) sff_vec2list(stat$t[i,], stats="abfunction")), type="l")
+
+save(all,Pall, file=paste0("Simulation_1_",format(Sys.time(), "%Y%m%d-%H%M"),".Rdata"))
 ```
 
 
@@ -232,17 +241,14 @@ for(i in 1:iters){
 
   M    = t(tcrossprod(coeff_M, design_M))+epsilon
 
-  eta      <- rnorm(sub, 0, sd_eta) 
+  eta  = matrix(rnorm(sub*len,0,sd_eta), ncol=len,nrow=(sub))
 
-  design_M_Y <- cbind(int=1,X=X)
-  coeff_M_Y  <- cbind(delta2,gamma)
+  Y    = t(sapply(1:sub, function(i) create_functional_y(x=X[i], m=M[i,], etai=eta[i,], delta2=delta2, gamma=gamma, beta=matrix(0, ncol=ncol(beta), nrow=nrow(beta)))))
 
-  Y    <- t(tcrossprod(coeff_M_Y, design_M_Y)) + eta
-  Y    <- as.numeric(Y)
+  dta  = data.frame(X=X,M=M,Y=Y)
+ 
+  out <- sff_Mediation(X,Y,t(M),mediatorMethod="fosr2s",penalty_ff=c(3,3), nbasis=nbasis,norder=norder,lambda=lambda, plot=TRUE, boot=TRUE) # Using quartic splines with penalty on the third derivative for tensor product in ff(), penalty=c(3,3)
 
-  dta  = cbind('Y'=Y,'X'=X,'M' = M)
-  
-  out  = fMediation_ML(X,Y,t(M),mediatorMethod="fosr2s", nbasis=nbasis,norder=norder,lambda=lambda, plot=plots, boot=TRUE)
   if(cluster==TRUE){
     stat = boot(data = dta, statistic = fbootstrap_ML,R = nboot,sim = "ordinary",stype = "i",parallel = "multicore",ncpus=10)
     }else{
@@ -257,7 +263,12 @@ for(i in 1:iters){
   all[i,] = stat$t0
   }
 
-save(all,Pall,Pall2, file=paste0("Simulation_2_",format(Sys.time(), "%Y%m%d-%H%M"),".Rdata"))
+colnames(Pall) = colnames(all) = colnames(stat$t) = names(stat$t0)
+
+sff_vec2list(Pall[1,], stats="bsurface", plot=TRUE, returns=FALSE)
+matplot(sapply(1:10, function(i) sff_vec2list(stat$t[i,], stats="abfunction")), type="l")
+
+save(all,Pall, file=paste0("Simulation_2_",format(Sys.time(), "%Y%m%d-%H%M"),".Rdata"))
 ```
 
 
@@ -279,17 +290,14 @@ for(i in 1:iters){
 
   M    = t(tcrossprod(coeff_M, design_M))+epsilon
 
-  eta      <- rnorm(sub, 0, sd_eta) 
+  eta  = matrix(rnorm(sub*len,0,sd_eta), ncol=len,nrow=(sub))
 
-  design_M_Y <- cbind(int=1,X=X,M=M)
-  coeff_M_Y  <- cbind(delta2,0, t(beta)*1/(ncol(M)-1))
+  Y    = t(sapply(1:sub, function(i) create_functional_y(x=X[i], m=M[i,], etai=eta[i,], delta2=delta2, gamma=rep(0, length(gamma)), beta=beta)))
 
-  Y    <- t(tcrossprod(coeff_M_Y, design_M_Y)) + eta
-  Y    <- as.numeric(Y)
-
-  dta  = cbind('Y'=Y,'X'=X,'M' = M)
+  dta  = data.frame(X=X,M=M,Y=Y)
   
-  out  = fMediation_ML(X,Y,t(M),mediatorMethod="fosr2s", nbasis=nbasis,norder=norder,lambda=lambda, plot=plots, boot=TRUE)
+  out <- sff_Mediation(X,Y,t(M),mediatorMethod="fosr2s",penalty_ff=c(3,3), nbasis=nbasis,norder=norder,lambda=lambda, plot=TRUE, boot=TRUE) # Using quartic splines with penalty on the third derivative for tensor product in ff(), penalty=c(3,3)
+
   if(cluster==TRUE){
     stat = boot(data = dta, statistic = fbootstrap_ML,R = nboot,sim = "ordinary",stype = "i",parallel = "multicore",ncpus=10)
     }else{
@@ -304,5 +312,10 @@ for(i in 1:iters){
   all[i,] = stat$t0
   }
 
-save(all,Pall,Pall2, file=paste0("Simulation_3_",format(Sys.time(), "%Y%m%d-%H%M"),".Rdata"))
+colnames(Pall) = colnames(all) = colnames(stat$t) = names(stat$t0)
+
+sff_vec2list(Pall[1,], stats="bsurface", plot=TRUE, returns=FALSE)
+matplot(sapply(1:10, function(i) sff_vec2list(stat$t[i,], stats="abfunction")), type="l")
+
+save(all,Pall, file=paste0("Simulation_3_",format(Sys.time(), "%Y%m%d-%H%M"),".Rdata"))
 ```
