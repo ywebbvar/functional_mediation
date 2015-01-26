@@ -44,7 +44,7 @@ fbootstrap_ML = function(dta, index){
   X = dta[,grep("X", names(dta))]
   M = t(dta[,grep("M", names(dta))])
   
-  result = sff_Mediation(X,Y,M,mediatorMethod="fosr2s",penalty_ff=c(3,3),nbasis=nbasis,norder=norder,lambda=lambda, plot=FALSE, boot=TRUE)
+  result = sff_Mediation(X,Y,M,mediatorMethod="fosr2s",nbasis=nbasis,norder=norder,lambda=lambda, plot=FALSE, boot=TRUE)
   return(result)
 }
 ```
@@ -133,7 +133,6 @@ In this simulation, $M$ depends on $Z$ and $X$, $Y$ only depends on $M$ and not 
 
 ```{r}
 Pall  = matrix(0, iters, (2*len^2+5*len)) #2 surfaces (abs, bf), 5 functions (abf,af,gf,d1,d2)
-Pall2 = matrix(0, iters, (2*len^2+5*len))
 all   = matrix(0, iters, (2*len^2+5*len))
 
 for(i in 1:iters){
@@ -153,9 +152,7 @@ for(i in 1:iters){
 
   dta  = data.frame(X=X,M=M,Y=Y)
   
-  system.time(
-  out <- sff_Mediation(X,Y,t(M),mediatorMethod="fosr2s",penalty_ff=c(3,3), nbasis=nbasis,norder=norder,lambda=lambda, plot=TRUE, boot=TRUE) # Using quartic splines with penalty on the third derivative for tensor product in ff(), penalty=c(3,3)
-  )
+  out <- sff_Mediation(X,Y,t(M),mediatorMethod="fosr2s", nbasis=nbasis,norder=norder,lambda=lambda, plot=TRUE, boot=TRUE)
   
   if(cluster==TRUE){
     stat = boot(data = dta, statistic = fbootstrap_ML,R = nboot,sim = "ordinary",stype = "i",parallel = "multicore",ncpus=10)
@@ -247,7 +244,7 @@ for(i in 1:iters){
 
   dta  = data.frame(X=X,M=M,Y=Y)
  
-  out <- sff_Mediation(X,Y,t(M),mediatorMethod="fosr2s",penalty_ff=c(3,3), nbasis=nbasis,norder=norder,lambda=lambda, plot=TRUE, boot=TRUE) # Using quartic splines with penalty on the third derivative for tensor product in ff(), penalty=c(3,3)
+  out <- sff_Mediation(X,Y,t(M),mediatorMethod="fosr2s", nbasis=nbasis,norder=norder,lambda=lambda, plot=TRUE, boot=TRUE) 
 
   if(cluster==TRUE){
     stat = boot(data = dta, statistic = fbootstrap_ML,R = nboot,sim = "ordinary",stype = "i",parallel = "multicore",ncpus=10)
@@ -296,7 +293,7 @@ for(i in 1:iters){
 
   dta  = data.frame(X=X,M=M,Y=Y)
   
-  out <- sff_Mediation(X,Y,t(M),mediatorMethod="fosr2s",penalty_ff=c(3,3), nbasis=nbasis,norder=norder,lambda=lambda, plot=TRUE, boot=TRUE) # Using quartic splines with penalty on the third derivative for tensor product in ff(), penalty=c(3,3)
+  out <- sff_Mediation(X,Y,t(M),mediatorMethod="fosr2s",nbasis=nbasis,norder=norder,lambda=lambda, plot=TRUE, boot=TRUE)
 
   if(cluster==TRUE){
     stat = boot(data = dta, statistic = fbootstrap_ML,R = nboot,sim = "ordinary",stype = "i",parallel = "multicore",ncpus=10)
