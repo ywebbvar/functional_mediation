@@ -13,6 +13,7 @@
 #' @param pen a nonnegative real number specifying the amount of penalization to be applied to the estimated functional parameter using an instrument.
 #' @param plot is a logical scalar, if TRUE, the function will produce plots of the a, b and ab paths.
 #' @param boot is a logical scalar, if TRUE, the function will only output the ab path, useful when bootstrap it.
+#' @param splinepars_ff a list with specific arguments for the function on function \code{ff} term. Defaults to a cubic tensor product P-splines with marginal first difference penalties
 #' @return afun A functional regression coefficient corresponding to a path
 #' @return bfun A functional regression coefficient corresponding to b path
 #' @return ab The ab effect
@@ -22,7 +23,7 @@
 #' @examples
 #' fMediation_ML(x,y,m,...)
 
-sff_Mediation <- function(x,y,m,mediatorMethod="fosr2s", penalty_ff=c(3,3),nbasis,norder,lambda=1e-8,pen=0.1, plot=FALSE, boot=FALSE, ask=FALSE){
+sff_Mediation <- function(x,y,m,mediatorMethod="fosr2s", splinepars_ff=list(bs="pss",m=list(c(2, 1), c(2,1))),nbasis,norder,lambda=1e-8,pen=0.1, plot=FALSE, boot=FALSE, ask=FALSE){
   
   require(refund)
   
@@ -106,7 +107,7 @@ sff_Mediation <- function(x,y,m,mediatorMethod="fosr2s", penalty_ff=c(3,3),nbasi
   tfine = seq(0,T_sup, length.out=len)
   
   m = t(m)
-  fit  = pffr(y ~ x + ff(m,limits="s<t", integration="riemann", splinepars=list(bs="pss", k=ifelse(N < 52, N-2, 50),m=penalty_ff))) # Defaults to quartic (m[1]=3) P-splines (bs="ps") with 2nd derivative order penalty (m[2]=2), and at most 50-dimensional basis 
+  fit  = pffr(y ~ x + ff(m,limits="s<t", integration="riemann", splinepars=splinepars_ff)) 
   
   d2fun = fit$smooth[["s(yindex.vec)"]]
   Pd2   = est_se_fgam(fit, term="s(yindex.vec)",n=len)
@@ -120,7 +121,7 @@ sff_Mediation <- function(x,y,m,mediatorMethod="fosr2s", penalty_ff=c(3,3),nbasi
   
   bfun = fit$smooth[["te(m.smat,m.tmat):L.m"]]
   Pb   = est_se_fgam(fit, term="te(m.smat,m.tmat):L.m",n=len, ff=TRUE, n2=len)
-  bf   = Pb$estimate*lower.tri(Pb$estimate)
+  bf   = Pb$estimate
   b_stderr = Pb$se  
   
   ResY     = fit$residuals
