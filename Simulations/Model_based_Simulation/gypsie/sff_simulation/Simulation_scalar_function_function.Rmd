@@ -1,0 +1,332 @@
+---
+title: "Simulation using splines. Original. In Gypsie"
+author: "Yenny Webb-Vargas"
+date: "Monday, November 17, 2014"
+output: html_document
+---
+
+This implements simulation for testing my functional mediation function. 
+
+Load the library 'refund'. It also loads the library 'fda' among many others.
+
+```{r}
+cluster = TRUE
+plots   = FALSE
+```
+
+```{r}
+library(refund)
+library(boot)
+if(cluster){
+  source('/home/bst/student/ywebbvar/Github/functional_mediation/sff_Mediation.R')
+  source('/home/bst/student/ywebbvar/Github/functional_mediation/est_se_fgam.R')
+  source('/home/bst/student/ywebbvar/Github/functional_mediation/lplot.R')
+  source('/home/bst/student/ywebbvar/Github/functional_mediation/sff_vec2list.R')
+  }else{
+  source('~/GitHub/functional_mediation/sff_Mediation.R') 
+  source('~/GitHub/functional_mediation/est_se_fgam.R')
+  source('~/GitHub/functional_mediation/lplot.R')
+  source('~/GitHub/functional_mediation/sff_vec2list.R')
+  }
+```
+
+Defining bootstrap function:
+```{r fbootstrap}
+create_functional_y = function(x, m, etai, delta2=delta2, gamma=gamma, beta=beta){
+  m_mat = matrix(m, ncol=length(m), nrow=length(m), byrow=T)
+  y = delta2 + gamma*x + rowSums(beta*m_mat*1/(ncol(M)-1)) + etai
+  y
+}
+
+fbootstrap_ML = function(dta, index){
+  dta = dta[index,]
+  Y = dta[,grep("Y", names(dta))]
+  X = dta[,grep("X", names(dta))]
+  M = t(dta[,grep("M", names(dta))])
+  
+  result <- tryCatch(
+    {sff_Mediation(X,Y,M,mediatorMethod="fosr2s",nbasis=nbasis,norder=norder,lambda=lambda, plot=FALSE, boot=TRUE)
+     },
+    error=function(cond){
+      message(cond)
+      return(rep(NA,(2*nrow(M)^2+5*nrow(M))))
+    }
+    )
+  return(result)
+}
+```
+
+Defining 
+
+```{r}
+sub=20
+nbasis = 50
+norder = 6
+lambda = 1e-10
+
+if(cluster){
+  iters   = 500  
+  nboot   = 1000 
+}else{
+  iters   = 1  
+  nboot   = 100 
+}
+
+len     = 40
+T_sup   = 1
+timevec = seq(0,T_sup, length.out=len)
+  
+# Create bspline basis set
+basis        = create.bspline.basis(rangeval = c(0,T_sup), nbasis = 30, norder=6)
+eval.bspline = eval.basis(seq(0,1,length.out=len), basis)
+
+# Parameters for random errors
+sd_epsilon = 1
+sd_eta     = 0.1
+```
+
+Create parameters: covariate and treatment effects
+```{r gen_pars}
+# Create delta
+set.seed(2903)
+delta1_coef = c(rep(0,5), runif(5,-2,0), runif(10,0,2),rep(0,10)) 
+delta1      = eval.bspline%*%delta1_coef
+
+# Create alpha
+set.seed(493)
+alpha_coef = c(rep(0,10), runif(10,1,4), rep(0,10)) 
+alpha      = eval.bspline%*%alpha_coef
+
+# Create delta2
+set.seed(73390)
+delta2_coef = c(rep(0,5), runif(5,2,5), runif(12,-2,3),rep(0,8)) 
+delta2      = eval.bspline%*%delta2_coef
+
+# Create gamma
+set.seed(2939)
+gamma_coef = c(rep(0,11), runif(3,3,5),runif(3,4,6),runif(3,1,4), rep(0,10)) 
+gamma      = eval.bspline%*%gamma_coef
+
+# Create beta
+set.seed(84930)
+beta_coef = c(rep(0,15), runif(10,6,8), runif(5,2,3)) 
+beta_line = eval.bspline%*%beta_coef
+ 
+beta = matrix(ncol=length(beta_line)*2, nrow=length(beta_line))
+for(i in 1:length(beta_line)) beta[i,] = c(rep(0, (i-1)), beta_line, rep(0,length(beta_line)-i+1))
+beta = beta[,(length(beta_line)+1):(length(beta_line)*2)]
+
+if(plots){
+  matplot(cbind(delta1,alpha), type="l")
+  matplot(cbind(delta2,gamma,beta_line), type="l")
+  image(t(beta), col  = gray((0:32)/32))
+  }
+
+alphabeta = matrix(alpha, byrow=T, ncol=length(alpha), nrow=length(alpha))*beta # In beta, the columns are 's', while the rows are 't'
+alphabeta_integral  = rowSums(alphabeta)*(timevec[2]-timevec[1])  # Integral of ab-function: ab(t) = \int af(s)bf(t,s)ds dt gives ab-path
+
+```
+
+Setting seed:
+```{r}
+if(cluster) RNGkind("L'Ecuyer-CMRG")
+seed = 340953
+set.seed(seed)
+```
+
+
+### Simulation 4
+In this simulation, $M$ depends on $Z$ and $X$, $Y$ only depends on $M$ and not on $X$ (there is complete mediation).
+
+```{r}
+Pall  = matrix(0, iters, (2*len^2+5*len)) #2 surfaces (abs, bf), 5 functions (abf,af,gf,d1,d2)
+all   = matrix(0, iters, (2*len^2+5*len))
+
+for(i in 1:iters){
+  X          = rbinom(sub,1,0.5)
+  
+  epsilon    = matrix(rnorm(sub*len,0,sd_epsilon), ncol=len,nrow=(sub))
+
+  design_M = cbind(int=1,X=X)
+  coeff_M  = cbind(delta1,alpha)
+  colnames(coeff_M) = c("delta1","alpha")
+
+  M    = t(tcrossprod(coeff_M, design_M))+epsilon
+
+  eta  = matrix(rnorm(sub*len,0,sd_eta), ncol=len,nrow=(sub))
+
+  Y    = t(sapply(1:sub, function(i) create_functional_y(x=X[i], m=M[i,], etai=eta[i,], delta2=delta2, gamma=gamma, beta=beta)))
+
+  dta  = data.frame(X=X,M=M,Y=Y)
+  
+  out <- sff_Mediation(X,Y,t(M),mediatorMethod="fosr2s", nbasis=nbasis,norder=norder,lambda=lambda, plot=plots, boot=TRUE)
+  
+  if(cluster==TRUE){
+    stat = boot(data = dta, statistic = fbootstrap_ML,R = nboot,sim = "ordinary",stype = "i",parallel = "multicore",ncpus=10)
+    }else{
+      time1 = Sys.time()
+      stat = boot(data = dta, statistic = fbootstrap_ML,R = nboot,sim = "ordinary",stype = "i")
+      time2 = Sys.time()
+    }
+
+  print(time2-time1)
+  
+  # Calculating p-value
+  Pall[i,] = 2*apply(cbind(colMeans(stat$t < 2*matrix(stat$t0, ncol=ncol(stat$t), nrow=nrow(stat$t), byrow = TRUE), na.rm = TRUE),colMeans(stat$t > 2*matrix(stat$t0, ncol=ncol(stat$t), nrow=nrow(stat$t), byrow = TRUE), na.rm = TRUE)),1, min)
+  all[i,] = stat$t0
+  }
+
+colnames(Pall) = colnames(all) = colnames(stat$t) = names(stat$t0)
+
+if(plots){
+  sff_vec2list(Pall[1,], stats="bsurface", plot=TRUE, returns=FALSE)
+  matplot(sapply(1:10, function(i) sff_vec2list(stat$t[i,], stats="abfunction")), type="l")
+}
+save(all,Pall, file=paste0("SFF_Simulation_4_",format(Sys.time(), "%Y%m%d-%H%M"),".Rdata"))
+```
+
+
+### Null Simulation 1. 
+In this simulation, $M$ is pure noise (and is not dependent on $X$), and $Y$ only depends on $X$.
+
+```{r}
+Pall  = matrix(0, iters, (2*len^2+5*len)) #2 surfaces (abs, bf), 5 functions (abf,af,gf,d1,d2)
+all   = matrix(0, iters, (2*len^2+5*len))
+
+for(i in 1:iters){
+  X          = rbinom(sub,1,0.5)
+  
+  epsilon    = matrix(rnorm(sub*len,0,sd_epsilon), ncol=len,nrow=(sub))
+
+  M    = epsilon
+
+  eta  = matrix(rnorm(sub*len,0,sd_eta), ncol=len,nrow=(sub))
+
+  Y    = t(sapply(1:sub, function(i) create_functional_y(x=X[i], m=M[i,], etai=eta[i,], delta2=delta2, gamma=gamma, beta=matrix(0, ncol=ncol(beta), nrow=nrow(beta)))))
+
+ dta  = data.frame(X=X,M=M,Y=Y)
+  
+  out  = sff_Mediation(X,Y,t(M),mediatorMethod="fosr2s", nbasis=nbasis,norder=norder,lambda=lambda, plot=plots, boot=TRUE)
+  
+  if(cluster==TRUE){
+    stat = boot(data = dta, statistic = fbootstrap_ML,R = nboot,sim = "ordinary",stype = "i",parallel = "multicore",ncpus=10)
+    }else{
+    stat = boot(data = dta, statistic = fbootstrap_ML,R = nboot,sim = "ordinary",stype = "i")
+    }
+                
+  
+  # Calculating p-value
+  Pall[i,] = 2*apply(cbind(colMeans(stat$t < 2*matrix(stat$t0, ncol=ncol(stat$t), nrow=nrow(stat$t), byrow = TRUE), na.rm = TRUE),colMeans(stat$t > 2*matrix(stat$t0, ncol=ncol(stat$t), nrow=nrow(stat$t), byrow = TRUE), na.rm = TRUE)),1, min)
+  all[i,] = stat$t0
+  }
+
+colnames(Pall) = colnames(all) = colnames(stat$t) = names(stat$t0)
+
+if(plots){
+  sff_vec2list(Pall[1,], stats="bsurface", plot=TRUE, returns=FALSE)
+  matplot(sapply(1:10, function(i) sff_vec2list(stat$t[i,], stats="abfunction")), type="l")
+}
+
+save(all,Pall, file=paste0("SFF_Simulation_1_",format(Sys.time(), "%Y%m%d-%H%M"),".Rdata"))
+```
+
+
+
+### Null Simulation 2. 
+In this simulation, $M$ depends on $X$, but $Y$ only depends on $X$ and not on $M$.
+
+```{r}
+Pall  = matrix(0, iters, (2*len^2+5*len)) #2 surfaces (abs, bf), 5 functions (abf,af,gf,d1,d2)
+all   = matrix(0, iters, (2*len^2+5*len))
+
+for(i in 1:iters){
+  X          = rbinom(sub,1,0.5)
+  
+  epsilon    = matrix(rnorm(sub*len,0,sd_epsilon), ncol=len,nrow=(sub))
+
+  design_M = cbind(int=1,X=X)
+  coeff_M  = cbind(delta1,alpha)
+  colnames(coeff_M) = c("delta1","alpha")
+
+  M    = t(tcrossprod(coeff_M, design_M))+epsilon
+
+  eta  = matrix(rnorm(sub*len,0,sd_eta), ncol=len,nrow=(sub))
+
+  Y    = t(sapply(1:sub, function(i) create_functional_y(x=X[i], m=M[i,], etai=eta[i,], delta2=delta2, gamma=gamma, beta=matrix(0, ncol=ncol(beta), nrow=nrow(beta)))))
+
+  dta  = data.frame(X=X,M=M,Y=Y)
+ 
+  out <- sff_Mediation(X,Y,t(M),mediatorMethod="fosr2s", nbasis=nbasis,norder=norder,lambda=lambda, plot=plots, boot=TRUE) 
+
+  if(cluster==TRUE){
+    stat = boot(data = dta, statistic = fbootstrap_ML,R = nboot,sim = "ordinary",stype = "i",parallel = "multicore",ncpus=10)
+    }else{
+    stat = boot(data = dta, statistic = fbootstrap_ML,R = nboot,sim = "ordinary",stype = "i")
+    }
+
+                
+  
+  # Calculating p-value
+  Pall[i,] = 2*apply(cbind(colMeans(stat$t < 2*matrix(stat$t0, ncol=ncol(stat$t), nrow=nrow(stat$t), byrow = TRUE), na.rm = TRUE),colMeans(stat$t > 2*matrix(stat$t0, ncol=ncol(stat$t), nrow=nrow(stat$t), byrow = TRUE), na.rm = TRUE)),1, min)
+  all[i,] = stat$t0
+  }
+
+colnames(Pall) = colnames(all) = colnames(stat$t) = names(stat$t0)
+
+if(plots){
+  sff_vec2list(Pall[1,], stats="bsurface", plot=TRUE, returns=FALSE)
+  matplot(sapply(1:10, function(i) sff_vec2list(stat$t[i,], stats="abfunction")), type="l")
+}
+
+save(all,Pall, file=paste0("SFF_Simulation_2_",format(Sys.time(), "%Y%m%d-%H%M"),".Rdata"))
+```
+
+
+### Null simulation 3
+In this simulation, $M$ depends on $\delta_1$ for all subjects (and does not depend on $X$), $Y$ only depends on $M$ and not on $X$.
+
+```{r}
+Pall  = matrix(0, iters, (2*len^2+5*len)) #2 surfaces (abs, bf), 5 functions (abf,af,gf,d1,d2)
+all   = matrix(0, iters, (2*len^2+5*len))
+
+for(i in 1:iters){
+  X          = rbinom(sub,1,0.5)
+  
+  epsilon    = matrix(rnorm(sub*len,0,sd_epsilon), ncol=len,nrow=(sub))
+
+  design_M = rep(1,sub)
+  coeff_M  = cbind(delta1)
+  colnames(coeff_M) = c("delta1")
+
+  M    = t(tcrossprod(coeff_M, design_M))+epsilon
+
+  eta  = matrix(rnorm(sub*len,0,sd_eta), ncol=len,nrow=(sub))
+
+  Y    = t(sapply(1:sub, function(i) create_functional_y(x=X[i], m=M[i,], etai=eta[i,], delta2=delta2, gamma=rep(0, length(gamma)), beta=beta)))
+
+  dta  = data.frame(X=X,M=M,Y=Y)
+  
+  out <- sff_Mediation(X,Y,t(M),mediatorMethod="fosr2s",nbasis=nbasis,norder=norder,lambda=lambda, plot=plots, boot=TRUE)
+
+  if(cluster==TRUE){
+    stat = boot(data = dta, statistic = fbootstrap_ML,R = nboot,sim = "ordinary",stype = "i",parallel = "multicore",ncpus=10)
+    }else{
+    stat = boot(data = dta, statistic = fbootstrap_ML,R = nboot,sim = "ordinary",stype = "i")
+    }
+
+                
+  
+  # Calculating p-value
+  Pall[i,] = 2*apply(cbind(colMeans(stat$t < 2*matrix(stat$t0, ncol=ncol(stat$t), nrow=nrow(stat$t), byrow = TRUE), na.rm = TRUE),colMeans(stat$t > 2*matrix(stat$t0, ncol=ncol(stat$t), nrow=nrow(stat$t), byrow = TRUE), na.rm = TRUE)),1, min)
+  all[i,] = stat$t0
+  }
+
+colnames(Pall) = colnames(all) = colnames(stat$t) = names(stat$t0)
+
+if(plots){
+  sff_vec2list(Pall[1,], stats="bsurface", plot=TRUE, returns=FALSE)
+  matplot(sapply(1:10, function(i) sff_vec2list(stat$t[i,], stats="abfunction")), type="l")
+}
+
+save(all,Pall, file=paste0("SFF_Simulation_3_",format(Sys.time(), "%Y%m%d-%H%M"),".Rdata"))
+```
