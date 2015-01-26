@@ -121,13 +121,17 @@ sff_Mediation <- function(x,y,m,mediatorMethod="fosr2s", splinepars_ff=list(bs="
   
   bfun = fit$smooth[["te(m.smat,m.tmat):L.m"]]
   Pb   = est_se_fgam(fit, term="te(m.smat,m.tmat):L.m",n=len, ff=TRUE, n2=len)
-  bf   = Pb$estimate
+  
+  NAmat = lower.tri(Pb$estimate)
+  NAmat[NAmat == FALSE] = NA
+  
+  bf   = Pb$estimate*NAmat
   b_stderr = Pb$se  
   
   ResY     = fit$residuals
   
   abs = matrix(af, byrow=T, ncol=len, nrow=len)*bf # In bf, the columns are 's', while the rows are 't'
-  abf  = rowSums(abs)*(tfine[2]-tfine[1])  # Integral of ab-function: ab(t) = \int af(s)bf(t,s)ds dt gives ab-path
+  abf  = rowSums(abs, na.rm = TRUE)*(tfine[2]-tfine[1])  # Integral of ab-function: ab(t) = \int af(s)bf(t,s)ds dt gives ab-path
   
   # Plot results
   if(plot==TRUE){
