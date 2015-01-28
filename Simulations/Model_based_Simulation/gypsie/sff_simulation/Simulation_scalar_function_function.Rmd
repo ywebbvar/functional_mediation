@@ -17,6 +17,7 @@ plots   = FALSE
 ```{r}
 library(refund)
 library(boot)
+library(mgcv)
 if(cluster){
   source('/home/bst/student/ywebbvar/Github/functional_mediation/sff_Mediation.R')
   source('/home/bst/student/ywebbvar/Github/functional_mediation/est_se_fgam.R')
@@ -162,7 +163,9 @@ for(i in 1:iters){
   out <- sff_Mediation(X,Y,t(M),mediatorMethod="fosr2s", nbasis=nbasis,norder=norder,lambda=lambda, plot=plots, boot=TRUE)
   
   if(cluster==TRUE){
+    time1 = Sys.time()
     stat = boot(data = dta, statistic = fbootstrap_ML,R = nboot,sim = "ordinary",stype = "i",parallel = "multicore",ncpus=15)
+    time2 = Sys.time()
     }else{
       time1 = Sys.time()
       stat = boot(data = dta, statistic = fbootstrap_ML,R = nboot,sim = "ordinary",stype = "i")
@@ -209,7 +212,9 @@ for(i in 1:iters){
   out  = sff_Mediation(X,Y,t(M),mediatorMethod="fosr2s", nbasis=nbasis,norder=norder,lambda=lambda, plot=plots, boot=TRUE)
   
   if(cluster==TRUE){
+    time1 = Sys.time()
     stat = boot(data = dta, statistic = fbootstrap_ML,R = nboot,sim = "ordinary",stype = "i",parallel = "multicore",ncpus=15)
+    time2 = Sys.time()
     }else{
     stat = boot(data = dta, statistic = fbootstrap_ML,R = nboot,sim = "ordinary",stype = "i")
     }
@@ -259,7 +264,9 @@ for(i in 1:iters){
   out <- sff_Mediation(X,Y,t(M),mediatorMethod="fosr2s", nbasis=nbasis,norder=norder,lambda=lambda, plot=plots, boot=TRUE) 
 
   if(cluster==TRUE){
+    time1 = Sys.time()
     stat = boot(data = dta, statistic = fbootstrap_ML,R = nboot,sim = "ordinary",stype = "i",parallel = "multicore",ncpus=15)
+    time2 = Sys.time()
     }else{
     stat = boot(data = dta, statistic = fbootstrap_ML,R = nboot,sim = "ordinary",stype = "i")
     }
@@ -309,7 +316,9 @@ for(i in 1:iters){
   out <- sff_Mediation(X,Y,t(M),mediatorMethod="fosr2s",nbasis=nbasis,norder=norder,lambda=lambda, plot=plots, boot=TRUE)
 
   if(cluster==TRUE){
+    time1 = Sys.time()
     stat = boot(data = dta, statistic = fbootstrap_ML,R = nboot,sim = "ordinary",stype = "i",parallel = "multicore",ncpus=15)
+    time2 = Sys.time()
     }else{
     stat = boot(data = dta, statistic = fbootstrap_ML,R = nboot,sim = "ordinary",stype = "i")
     }
