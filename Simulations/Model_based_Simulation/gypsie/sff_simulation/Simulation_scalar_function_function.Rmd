@@ -66,8 +66,8 @@ norder = 6
 lambda = 1e-10
 
 if(cluster){
-  iters   = 500  
-  nboot   = 1000 
+  iters   = 10 #500  
+  nboot   = 100 #1000 
 }else{
   iters   = 1  
   nboot   = 100 
