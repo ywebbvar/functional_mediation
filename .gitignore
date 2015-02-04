@@ -1,8 +1,9 @@
 # R data files
 *.Rdata
 
-# Matlab automatic save files
+# Matlab automatic save files and data files
 *.asv
+*.mat
 
 # Windows image file caches
 Thumbs.db
