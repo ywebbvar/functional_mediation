@@ -1,0 +1,50 @@
+---
+title: "Data Application"
+author: "Yenny Webb-Vargas"
+date: "Wednesday, February 04, 2015"
+output: html_document
+---
+
+```{r}
+library(R.matlab)
+meta_file = '~/GitHub/functional_mediation/data_application/meta.mat'
+meta = readMat(meta_file, fixNames=TRUE)[['meta']]
+```
+
+```{r}
+list_names = 'heat_crating: {1x93 cell}
+         soundpain_crating: {1x93 cell}
+              iads_crating: {1x93 cell}
+          heat_orating_int: {1x93 cell}
+          heat_orating_unp: {1x93 cell}
+     soundpain_orating_int: {1x93 cell}
+     sounpdain_orating_unp: {1x93 cell}
+          iads_orating_int: {1x93 cell}
+          iads_orating_unp: {1x93 cell}
+                       run: {1x93 cell}
+                     trial: {1x93 cell}
+                 condition: {1x93 cell}
+                  iads_set: {1x93 cell}
+                heat_level: {1x93 cell}
+         heat_crating_peak: {1x93 cell}
+           soundpain_level: {1x93 cell}
+    soundpain_crating_peak: {1x93 cell}
+                iads_level: {1x93 cell}
+         iads_crating_peak: {1x93 cell}
+                  subjects: {1x93 cell}
+                   ratings: {1x93 cell}
+                      temp: {1x93 cell}'
+
+list_names = gsub(' {1x93 cell}\n', '', list_names, fixed=TRUE)
+list_names = gsub(' {1x93 cell}', '', list_names, fixed=TRUE)
+list_names = strsplit(list_names, ":")[[1]]
+list_names = sapply(list_names, function(x) gsub(' ', '', x))
+
+names(meta) = list_names
+```
+
+
+```{r}
+
+```
+
