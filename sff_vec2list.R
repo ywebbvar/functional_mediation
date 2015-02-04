@@ -7,8 +7,9 @@
 #' @param plot a logical scalar to indicate if results should be plotted
 #' @param ask a logical scalar to indicate if R should ask before switching to the next plot
 #' @param returns a logical scalar to indicate whether output be produced. If \code{stat} is 'all', then a list with all functions and surfaces is returned. Else, a vector (for functions) or matrix (for surfaces) is returned.
+#' @param surface a list with two entries (s, t). s are the rows (time parameter for mediator) and t are columns (time parameter for outcome) to extract from surface. Default is to extract the whole surface
 
-sff_vec2list <- function(result, len=NULL,result_names=names(result), stats="all", plot=FALSE, ask=TRUE, returns=TRUE){
+sff_vec2list <- function(result, len=NULL,result_names=names(result), stats="all", plot=FALSE, ask=TRUE, returns=TRUE, surface=NULL){
   results = list()
   
   results$afunction  = result[grep('^afunction_', result_names)]
@@ -52,11 +53,27 @@ sff_vec2list <- function(result, len=NULL,result_names=names(result), stats="all
         plot(tfine, results, type="l", main=stats)
       }
     }else{
+      if(is.null(surface)){
       results = t(matrix(result[grep(paste0('^',stats),result_names)], len, len))
       
       if(plot==TRUE){
         tfine = seq(0,1, length.out=len)
         image(t(results), col  = gray((0:32)/32), main=stats)
+      }}else{
+        if(surface$s == "all") surface$s=1:len
+        if(surface$t == "all") surface$t=1:len
+        
+        results = t(matrix(result[grep(paste0('^',stats),result_names)], len, len))
+        results = results[surface$s, surface$t]
+        
+        if(plot==TRUE & length(dim(results)) == 0){
+          tfine = seq(0,1, length.out=len)
+          plot(tfine, results, type="l", main=stats)
+        }else{
+          if(plot==TRUE & length(dim(results)) == 2){
+            tfine = seq(0,1, length.out=len)
+            image(t(results), col  = gray((0:32)/32), main=stats)  
+        }}
       }
     }
     
