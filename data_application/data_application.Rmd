@@ -8,6 +8,7 @@ output: html_document
 ```{r}
 library(R.matlab)
 meta_file = '~/GitHub/functional_mediation/data_application/meta.mat'
+
 meta = readMat(meta_file, fixNames=TRUE)[['meta']]
 ```
 
