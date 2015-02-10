@@ -62,6 +62,9 @@ sff_vec2list <- function(result, len=NULL,result_names=names(result), stats="all
       }}else{
         if(surface$s == "all") surface$s=1:len
         if(surface$t == "all") surface$t=1:len
+                
+        if(!(class(surface$s) %in% c("numeric", "integer"))) stop("surface parameter 's' must be a number, a numerical vector or the string 'all'")
+        if(!(class(surface$t) %in% c("numeric", "integer"))) stop("surface parameter 't' must be a number, a numerical vector or the string 'all'")
         
         results = t(matrix(result[grep(paste0('^',stats),result_names)], len, len))
         results = results[surface$s, surface$t]
