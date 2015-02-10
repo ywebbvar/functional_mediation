@@ -1,0 +1,314 @@
+Simulation of brain mediation RPM model 
+========================================================
+
+In this document I simulate functional data, code the two stage least square (2SLS) procedure for estimation, and 
+
+
+
+```{r}
+#library(reshape2, warn.conflicts = FALSE)
+#library(geepack, warn.conflicts = FALSE)
+library(ggplot2, warn.conflicts = FALSE)
+#library(GGally, warn.conflicts = FALSE)
+library(RColorBrewer, warn.conflicts = FALSE)
+library(gridExtra, warn.conflicts = FALSE)
+library(refund)
+library(splines)
+library(MASS) #ginv for Moore-Penrose generalized inverse
+
+mypalette   <- brewer.pal(9, "PRGn")
+qualpalette <- brewer.pal(8,"Set2")
+```
+
+Loading data
+=========================================
+  
+```{r load_data_BR6, cache=TRUE}
+datos <- read.table("C:\\Users\\Yenny\\Dropbox\\2012 Research\\Mediation_Research\\Data_experiment\\FDA_data3")
+                    
+# Selecting Right Anterior Insula (Brain Region 6)
+j <- 6
+BR <- datos[(1:943)+(j-1)*943,4:26]
+BR_tx <- datos[(1:943)+(j-1)*943,2]
+BR_subjects <- datos[(1:943)+(j-1)*943,1]
+    # Removing extreme outliers
+  BR_outliers <- which(abs(as.matrix(BR)) > 30 )
+    for(i in BR_outliers) if(floor(i/943)+1==24){
+            BR[i%%943,23] <- NA
+			  }else{
+			  BR[i%%943,floor(i/943)+1] <- NA
+			  }
+
+# Build dataframe compatible with Vadim's lecture 8 code.
+BR6.refund <- with(datos[(1:943)+(6-1)*943,], {
+         data.frame(ID = V1, trt = V2, pain = V3)
+                  })
+
+BR6.refund$intensity <- as.matrix(BR)
+```
+
+```{r load_data_BR19, cache=TRUE}
+# Selecting Right Anterior Insula (Brain Region 6)
+j <- 19
+BR <- datos[(1:943)+(j-1)*943,4:26]
+BR_tx <- datos[(1:943)+(j-1)*943,2]
+BR_subjects <- datos[(1:943)+(j-1)*943,1]
+    # Removing extreme outliers
+  BR_outliers <- which(abs(as.matrix(BR)) > 30 )
+    for(i in BR_outliers) if(floor(i/943)+1==24){
+            BR[i%%943,23] <- NA
+  		  }else{
+			  BR[i%%943,floor(i/943)+1] <- NA
+			  }
+
+# Build dataframe compatible with Vadim's lecture 8 code.
+BR19.refund <- with(datos[(1:943)+(6-1)*943,], {
+         data.frame(ID = V1, trt = V2, pain = V3)
+                  })
+
+BR19.refund$intensity <- as.matrix(BR)
+```
+
+
+The structure of the data is as follows:
+  
+* We have a stack of 21 matrices (943 by 26) each corresponding to a different brain region.
+* The first column is the subject identifier (1-20)
+* Second column is temperature (0,1)
+* Third column is pain rating (Continuous)
+* Columns 4-26 is the time series data M(t)
+* Each subject has 39 to 48 repetitions
+
+I look at the mediated effect of the treatment through brain region 6 (RAIns - Right Anterior Insula) on brain region 19 (dACC - dorsal Anterior Cingulate Cortex) 
+
+```{r}
+  source('~/GitHub/functional_mediation/sff_Mediation.R')  
+  source('~/GitHub/functional_mediation/est_se_fgam.R')  
+```
+
+```{r}
+fbootstrap_ML = function(dta, index){
+  dta = dta[index,]
+  Y = dta[,grep("Y", names(dta))]
+  X = dta[,grep("X", names(dta))]
+  M = t(dta[,grep("M", names(dta))])
+  
+  result <- tryCatch(
+    {sff_Mediation(X,Y,M,mediatorMethod="fosr2s",nbasis=nbasis,norder=norder,lambda=lambda, plot=FALSE, boot=TRUE)
+     },
+    error=function(cond){
+      message(cond)
+      return(rep(NA,(2*nrow(M)^2+5*nrow(M))))
+    }
+    )
+  return(result)
+}
+```
+
+
+```{r}
+dta = cbind(BR19.refund[,"trt"],BR19.refund[,"intensity"],BR6.refund[,"intensity"])
+dta = dta[complete.cases(dta),]
+
+X <- dta[,1]
+Y <- dta[,seq(2,ncol(BR19.refund[,"intensity"])+1)]
+M <- dta[,seq(ncol(BR19.refund[,"intensity"])+2,ncol(BR19.refund[,"intensity"])+ncol(BR6.refund[,"intensity"])+1)]
+
+nbasis = 50
+norder = 6
+lambda = 1e-10
+```
+
+
+```{r eval=FALSE}
+time1 = Sys.time()
+out <- sff_Mediation(X,Y,t(M),mediatorMethod="fosr2s", nbasis=nbasis,norder=norder,lambda=lambda, plot=TRUE, boot=TRUE)
+time2 = Sys.time()
+time2 - time1
+
+dta2  = data.frame(X=X,M=M,Y=Y)
+
+library(boot)
+library(parallel)
+library(snow)
+library(doSNOW)
+
+cl <- makeCluster(4, type="SOCK")
+registerDoSNOW(cl)
+
+time3 = Sys.time()
+stat = boot(data = dta2, statistic = fbootstrap_ML,R = 100,sim = "ordinary",stype = "i", parallel="snow")
+time4 = Sys.time()
+time4 - time3
+
+time3 = Sys.time()
+stat2 = boot(data = dta2, statistic = fbootstrap_ML,R = 100,sim = "ordinary",stype = "i", parallel="snow")
+time4 = Sys.time()
+time4 - time3
+
+time3 = Sys.time()
+stat3 = boot(data = dta2, statistic = fbootstrap_ML,R = 100,sim = "ordinary",stype = "i", parallel="snow")
+time4 = Sys.time()
+time4 - time3
+
+time3 = Sys.time()
+stat4 = boot(data = dta2, statistic = fbootstrap_ML,R = 100,sim = "ordinary",stype = "i", parallel="snow")
+time4 = Sys.time()
+time4 - time3
+
+time3 = Sys.time()
+stat5 = boot(data = dta2, statistic = fbootstrap_ML,R = 100,sim = "ordinary",stype = "i", parallel="snow")
+time4 = Sys.time()
+time4 - time3
+
+stopCluster(cl)
+
+stats = list(stat=stat, stat2=stat2, stat3=stat3, stat4=stat4, stat5=stat5)
+save(dta2,stats, out, file="~/GitHub/functional_mediation/data_application/boot_stats.Rdata")
+```
+
+```{r}
+load(file="~/GitHub/functional_mediation/data_application/boot_stats.Rdata")
+library(plyr)
+library(dplyr)
+library(ggplot2)
+library(tidyr)
+```
+
+
+```{r}
+dta2$ID <- seq(1,nrow(dta2))
+dta3 <- gather(dta2, Parameter,BOLD, -c(X, ID))
+dta3 <- dta3 %>% separate(Parameter, c("BR", "time"))
+
+dta3$BR <- factor(dta3$BR, levels=c("M", "Y"), labels = c("Right Anterior Insula", " dorsal Anterior Cingulate Cortex"))
+
+dta3$time <- factor(dta3$time, levels=paste0("V", 4:26), labels = 1:23)
+dta3$time <- as.numeric(as.character(dta3$time))
+
+dta3$Condition <- factor(dta3$X, levels=c(1,0), labels = c("High", "Low"))
+```
+
+```{r dta, fig.height=4.7,fig.width=4.7,dpi=100, fig.path='C:/Users/Yenny/Documents/GitHub/functional_mediation/data_application/', include=FALSE}
+c = ggplot(data=dta3, aes(y = BOLD, x = time, colour=Condition))
+c = c +facet_grid(BR ~ Condition , scale="fixed")
+
+c$labels = list(x = "Time in seconds", y = "Intensity", colour = "Condition")
+c = c + geom_path(data = dta3, aes(x = time, y = BOLD, group = ID, colour = Condition), size = 0.7, alpha = 0.05) + guides(colour=FALSE) + stat_smooth(size=2,level = 0.95) 
+c
+```
+
+```{r dta2, fig.height=3,fig.width=5,dpi=100, fig.path='C:/Users/Yenny/Documents/GitHub/functional_mediation/data_application/', include=FALSE}
+c = ggplot(data=dta3, aes(y = BOLD, x = time, colour=BR))
+c = c +facet_grid(. ~ BR , scale="fixed")
+
+c$labels = list(x = "Time in seconds", y = "Intensity", colour = "BR")
+c = c + geom_path(data = dta3, aes(x = time, y = BOLD, group = ID, colour = BR), size = 0.7, alpha = 0.01) + guides(colour=FALSE) + stat_smooth(size=2,level = 0.95) 
+c
+```
+
+```{r}
+all_stats = rbind(stats$stat$t, stats$stat2$t, stats$stat3$t, stats$stat4$t, stats$stat5$t)
+
+Pall = 2*apply(cbind(colMeans(all_stats < 2*matrix(stats$stat$t0, ncol=ncol(all_stats), nrow=nrow(all_stats), byrow = TRUE), na.rm = TRUE),colMeans(all_stats > 2*matrix(stats$stat$t0, ncol=ncol(all_stats), nrow=nrow(all_stats), byrow = TRUE), na.rm = TRUE)),1, min)
+
+colnames(all_stats) <- names(Pall) <- names(out)
+  
+source('~/GitHub/functional_mediation/sff_vec2list.R')
+source('~/GitHub/functional_mediation/lplot.R')
+```
+
+```{r}
+par(mfrow=c(2,1))
+sff_vec2list(out, stats="d1function", plot=TRUE, returns = FALSE)
+sff_vec2list(Pall, stats="d1function", plot=TRUE, returns = FALSE)
+
+sff_vec2list(out, stats="afunction", plot=TRUE, returns = FALSE)
+sff_vec2list(Pall, stats="afunction", plot=TRUE, returns = FALSE)
+
+sff_vec2list(out, stats="absurface", plot=TRUE, returns = FALSE)
+sff_vec2list(Pall, stats="absurface", plot=TRUE, returns = FALSE)
+
+sff_vec2list(out, stats="abfunction", plot=TRUE, returns = FALSE)
+sff_vec2list(Pall, stats="abfunction", plot=TRUE, returns = FALSE)
+
+sff_vec2list(out, stats="gfunction", plot=TRUE, returns = FALSE)
+sff_vec2list(Pall, stats="gfunction", plot=TRUE, returns = FALSE)
+```
+
+
+```{r}
+  b_s_fun = sapply(1:nrow(all_stats), function(i) sff_vec2list(all_stats[i,], stats="bsurface", surface=list(s=5,t="all")))
+  b_m_fun = sapply(1:nrow(all_stats), function(i) sff_vec2list(all_stats[i,], stats="bsurface", surface=list(s=12,t="all")))
+  b_l_fun = sapply(1:nrow(all_stats), function(i) sff_vec2list(all_stats[i,], stats="bsurface", surface=list(s=23,t="all")))
+  
+  ab_s_fun = sapply(1:nrow(all_stats), function(i) sff_vec2list(all_stats[i,], stats="absurface", surface=list(s=5,t="all")))
+  ab_m_fun = sapply(1:nrow(all_stats), function(i) sff_vec2list(all_stats[i,], stats="absurface", surface=list(s=12,t="all")))
+  ab_l_fun = sapply(1:nrow(all_stats), function(i) sff_vec2list(all_stats[i,], stats="absurface", surface=list(s=23,t="all")))
+
+  b_and_ab = t(rbind(b_s_fun, b_m_fun, b_l_fun, ab_s_fun, ab_m_fun, ab_l_fun))
+  colnames(b_and_ab) = c(paste("bsfunction", 1:nrow(b_s_fun), sep="_"),
+                         paste("bmfunction", 1:nrow(b_s_fun), sep="_"),
+                         paste("blfunction", 1:nrow(b_s_fun), sep="_"),
+                         paste("absfunction", 1:nrow(b_s_fun), sep="_"),
+                         paste("abmfunction", 1:nrow(b_s_fun), sep="_"),
+                         paste("ablfunction", 1:nrow(b_s_fun), sep="_"))
+```
+
+```{r}
+  params = do.call(rbind, strsplit(colnames(all_stats), "_"))
+  
+  fun_all = all_stats[,!(params[,1] %in% c("absurface", "bsurface"))]
+  fun_all = cbind(fun_all, b_and_ab)
+
+params = do.call(rbind, strsplit(colnames(fun_all), "_"))
+  
+all_dta = data.frame(ID=rep(1:nrow(fun_all), each=ncol(fun_all)), Parameter=params[,1], time = as.numeric(params[,2]), BOLD = c(t(fun_all)))
+```
+
+
+```{r}
+all_tbl = tbl_df(all_dta) 
+
+all_tbl$Parameter = mapvalues(all_tbl$Parameter, from = levels(all_tbl$Parameter), to = c("Alpha*Beta", "Alpha*Beta (t=23)", "Alpha*Beta (t=12)", "Alpha*Beta (t=5)",  "Alpha", "Beta (t=23)","Beta (t=12)","Beta (t=5)", "Delta 1","Delta 2", "Gamma"))
+
+mediator_tbl = filter(all_tbl,Parameter %in% c("Alpha","Delta 1"))
+mediator_tbl$Parameter = factor(mediator_tbl$Parameter, levels=c("Alpha","Delta 1"))
+
+outcome_tbl = filter(all_tbl,Parameter %in% c("Delta 2", "Gamma","Beta (t=5)", "Beta (t=12)","Beta (t=23)"))
+outcome_tbl$Parameter = factor(outcome_tbl$Parameter, levels=c("Delta 2", "Gamma","Beta (t=5)", "Beta (t=12)","Beta (t=23)"))
+
+indirect_tbl = filter(all_tbl,Parameter %in% c("Beta (t=5)","Beta (t=12)","Beta (t=23)","Alpha", "Alpha*Beta (t=5)","Alpha*Beta (t=12)","Alpha*Beta (t=23)", "Alpha*Beta"))
+indirect_tbl$Parameter = factor(indirect_tbl$Parameter, levels=c("Beta (t=5)","Beta (t=12)","Beta (t=23)","Alpha", "Alpha*Beta (t=5)","Alpha*Beta (t=12)","Alpha*Beta (t=23)", "Alpha*Beta"))
+
+small_tbl = filter(all_tbl,Parameter %in% c("Alpha", "Beta (t=12)","Beta (t=23)", "Alpha*Beta", "Gamma"))
+small_tbl$Parameter = factor(small_tbl$Parameter, levels=c("Alpha", "Beta (t=12)","Beta (t=23)", "Alpha*Beta", "Gamma"))
+```
+
+```{r sff_med_model, fig.height=3.2,fig.width=5,dpi=100, fig.path='C:/Users/Yenny/Documents/GitHub/functional_mediation/data_application/', include=FALSE}
+c = ggplot(data=mediator_tbl, aes(y = BOLD, x = time))
+c = c +facet_grid(. ~ Parameter , scale="fixed")
+
+c$labels = list(x = "Time in seconds", y = "Intensity", colour = "Parameter")
+c = c + geom_path(data = mediator_tbl, aes(x = time, y = BOLD, group = ID, colour = Parameter), size = 0.7, alpha = 0.05) + guides(colour=FALSE)
+c
+```
+
+```{r sff_outcome_model, fig.height=3.2,fig.width=11,dpi=100, fig.path='C:/Users/Yenny/Documents/GitHub/functional_mediation/data_application/', include=FALSE}
+c = ggplot(data=outcome_tbl, aes(y = BOLD, x = time))
+c = c +facet_grid(. ~ Parameter , scale="fixed")
+
+c$labels = list(x = "Time in seconds", y = "Intensity", colour = "Parameter")
+c = c + geom_path(data = outcome_tbl, aes(x = time, y = BOLD, group = ID, colour = Parameter), size = 0.7, alpha = 0.05) + guides(colour=FALSE)
+c
+```
+
+```{r sff_indirect, fig.height=4.7,fig.width=8,dpi=100, fig.path='C:/Users/Yenny/Documents/GitHub/functional_mediation/data_application/', include=FALSE}
+c = ggplot(data=indirect_tbl, aes(y = BOLD, x = time))
+c = c +facet_wrap(~ Parameter, ncol=4, scale="fixed")
+
+c$labels = list(x = "Time in seconds", y = "Intensity", colour = "Parameter")
+c = c + geom_path(data = indirect_tbl, aes(x = time, y = BOLD, group = ID, colour = Parameter), size = 0.7, alpha = 0.05) + guides(colour=FALSE)
+c
+```
+
