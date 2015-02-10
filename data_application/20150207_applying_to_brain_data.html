@@ -240,7 +240,7 @@ dta3 &lt;- dta3 %&gt;% separate(Parameter, c(&quot;BR&quot;, &quot;time&quot;))
 dta3$BR &lt;- factor(dta3$BR, levels=c(&quot;M&quot;, &quot;Y&quot;), labels = c(&quot;Right Anterior Insula&quot;, &quot; dorsal Anterior Cingulate Cortex&quot;))
 
 dta3$time &lt;- factor(dta3$time, levels=paste0(&quot;V&quot;, 4:26), labels = 1:23)
-dta3$time &lt;- as.numeric(as.character(dta3$time))
+dta3$time &lt;- as.numeric(as.character(dta3$time))*1.5
 
 dta3$Condition &lt;- factor(dta3$X, levels=c(1,0), labels = c(&quot;High&quot;, &quot;Low&quot;))</code></pre>
 <pre class="r"><code>all_stats = rbind(stats$stat$t, stats$stat2$t, stats$stat3$t, stats$stat4$t, stats$stat5$t)
@@ -292,19 +292,21 @@ params = do.call(rbind, strsplit(colnames(fun_all), &quot;_&quot;))
 all_dta = data.frame(ID=rep(1:nrow(fun_all), each=ncol(fun_all)), Parameter=params[,1], time = as.numeric(params[,2]), BOLD = c(t(fun_all)))</code></pre>
 <pre class="r"><code>all_tbl = tbl_df(all_dta) 
 
-all_tbl$Parameter = mapvalues(all_tbl$Parameter, from = levels(all_tbl$Parameter), to = c(&quot;Alpha*Beta&quot;, &quot;Alpha*Beta (t=23)&quot;, &quot;Alpha*Beta (t=12)&quot;, &quot;Alpha*Beta (t=5)&quot;,  &quot;Alpha&quot;, &quot;Beta (t=23)&quot;,&quot;Beta (t=12)&quot;,&quot;Beta (t=5)&quot;, &quot;Delta 1&quot;,&quot;Delta 2&quot;, &quot;Gamma&quot;))
+all_tbl$Parameter = mapvalues(all_tbl$Parameter, from = levels(all_tbl$Parameter), to = c(&quot;ab&quot;, &quot;ab (t=23)&quot;, &quot;ab (t=18)&quot;, &quot;ab (t=7)&quot;,  &quot;a&quot;, &quot;b (t=23)&quot;,&quot;b (t=18)&quot;,&quot;b (t=7)&quot;, &quot;d1&quot;,&quot;d2&quot;, &quot;c&quot;))
 
-mediator_tbl = filter(all_tbl,Parameter %in% c(&quot;Alpha&quot;,&quot;Delta 1&quot;))
-mediator_tbl$Parameter = factor(mediator_tbl$Parameter, levels=c(&quot;Alpha&quot;,&quot;Delta 1&quot;))
+all_tbl$time &lt;- all_tbl$time*1.5
 
-outcome_tbl = filter(all_tbl,Parameter %in% c(&quot;Delta 2&quot;, &quot;Gamma&quot;,&quot;Beta (t=5)&quot;, &quot;Beta (t=12)&quot;,&quot;Beta (t=23)&quot;))
-outcome_tbl$Parameter = factor(outcome_tbl$Parameter, levels=c(&quot;Delta 2&quot;, &quot;Gamma&quot;,&quot;Beta (t=5)&quot;, &quot;Beta (t=12)&quot;,&quot;Beta (t=23)&quot;))
+mediator_tbl = filter(all_tbl,Parameter %in% c(&quot;a&quot;,&quot;d1&quot;))
+mediator_tbl$Parameter = factor(mediator_tbl$Parameter, levels=c(&quot;a&quot;,&quot;d1&quot;))
 
-indirect_tbl = filter(all_tbl,Parameter %in% c(&quot;Beta (t=5)&quot;,&quot;Beta (t=12)&quot;,&quot;Beta (t=23)&quot;,&quot;Alpha&quot;, &quot;Alpha*Beta (t=5)&quot;,&quot;Alpha*Beta (t=12)&quot;,&quot;Alpha*Beta (t=23)&quot;, &quot;Alpha*Beta&quot;))
-indirect_tbl$Parameter = factor(indirect_tbl$Parameter, levels=c(&quot;Beta (t=5)&quot;,&quot;Beta (t=12)&quot;,&quot;Beta (t=23)&quot;,&quot;Alpha&quot;, &quot;Alpha*Beta (t=5)&quot;,&quot;Alpha*Beta (t=12)&quot;,&quot;Alpha*Beta (t=23)&quot;, &quot;Alpha*Beta&quot;))
+outcome_tbl = filter(all_tbl,Parameter %in% c(&quot;d2&quot;, &quot;c&quot;,&quot;b (t=7)&quot;, &quot;b (t=18)&quot;,&quot;b (t=23)&quot;))
+outcome_tbl$Parameter = factor(outcome_tbl$Parameter, levels=c(&quot;d2&quot;, &quot;c&quot;,&quot;b (t=7)&quot;, &quot;b (t=18)&quot;,&quot;b (t=23)&quot;))
 
-small_tbl = filter(all_tbl,Parameter %in% c(&quot;Alpha&quot;, &quot;Beta (t=12)&quot;,&quot;Beta (t=23)&quot;, &quot;Alpha*Beta&quot;, &quot;Gamma&quot;))
-small_tbl$Parameter = factor(small_tbl$Parameter, levels=c(&quot;Alpha&quot;, &quot;Beta (t=12)&quot;,&quot;Beta (t=23)&quot;, &quot;Alpha*Beta&quot;, &quot;Gamma&quot;))</code></pre>
+indirect_tbl = filter(all_tbl,Parameter %in% c(&quot;b (t=7)&quot;,&quot;b (t=18)&quot;,&quot;b (t=23)&quot;,&quot;a&quot;, &quot;ab (t=7)&quot;,&quot;ab (t=18)&quot;,&quot;ab (t=23)&quot;, &quot;ab&quot;))
+indirect_tbl$Parameter = factor(indirect_tbl$Parameter, levels=c(&quot;b (t=7)&quot;,&quot;b (t=18)&quot;,&quot;b (t=23)&quot;,&quot;a&quot;, &quot;ab (t=7)&quot;,&quot;ab (t=18)&quot;,&quot;ab (t=23)&quot;, &quot;ab&quot;))
+
+small_tbl = filter(all_tbl,Parameter %in% c(&quot;a&quot;, &quot;b (t=18)&quot;,&quot;b (t=23)&quot;, &quot;ab&quot;, &quot;c&quot;))
+small_tbl$Parameter = factor(small_tbl$Parameter, levels=c(&quot;a&quot;, &quot;b (t=18)&quot;,&quot;b (t=23)&quot;, &quot;ab&quot;, &quot;c&quot;))</code></pre>
 </div>
 
 
