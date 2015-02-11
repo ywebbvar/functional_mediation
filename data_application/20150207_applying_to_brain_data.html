@@ -305,6 +305,10 @@ outcome_tbl$Parameter = factor(outcome_tbl$Parameter, levels=c(&quot;d2&quot;, &
 indirect_tbl = filter(all_tbl,Parameter %in% c(&quot;b (t=7)&quot;,&quot;b (t=18)&quot;,&quot;b (t=23)&quot;,&quot;a&quot;, &quot;ab (t=7)&quot;,&quot;ab (t=18)&quot;,&quot;ab (t=23)&quot;, &quot;ab&quot;))
 indirect_tbl$Parameter = factor(indirect_tbl$Parameter, levels=c(&quot;b (t=7)&quot;,&quot;b (t=18)&quot;,&quot;b (t=23)&quot;,&quot;a&quot;, &quot;ab (t=7)&quot;,&quot;ab (t=18)&quot;,&quot;ab (t=23)&quot;, &quot;ab&quot;))
 
+ab_tbl = filter(all_tbl,Parameter %in% c(&quot;c&quot;, &quot;ab&quot;))
+ab_tbl$Parameter = factor(ab_tbl$Parameter, levels=c(&quot;c&quot;, &quot;ab&quot;))
+
+
 small_tbl = filter(all_tbl,Parameter %in% c(&quot;a&quot;, &quot;b (t=18)&quot;,&quot;b (t=23)&quot;, &quot;ab&quot;, &quot;c&quot;))
 small_tbl$Parameter = factor(small_tbl$Parameter, levels=c(&quot;a&quot;, &quot;b (t=18)&quot;,&quot;b (t=23)&quot;, &quot;ab&quot;, &quot;c&quot;))</code></pre>
 </div>

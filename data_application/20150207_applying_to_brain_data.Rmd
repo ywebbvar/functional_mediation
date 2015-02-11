@@ -283,6 +283,10 @@ outcome_tbl$Parameter = factor(outcome_tbl$Parameter, levels=c("d2", "c","b (t=7
 indirect_tbl = filter(all_tbl,Parameter %in% c("b (t=7)","b (t=18)","b (t=23)","a", "ab (t=7)","ab (t=18)","ab (t=23)", "ab"))
 indirect_tbl$Parameter = factor(indirect_tbl$Parameter, levels=c("b (t=7)","b (t=18)","b (t=23)","a", "ab (t=7)","ab (t=18)","ab (t=23)", "ab"))
 
+ab_tbl = filter(all_tbl,Parameter %in% c("c", "ab"))
+ab_tbl$Parameter = factor(ab_tbl$Parameter, levels=c("c", "ab"))
+
+
 small_tbl = filter(all_tbl,Parameter %in% c("a", "b (t=18)","b (t=23)", "ab", "c"))
 small_tbl$Parameter = factor(small_tbl$Parameter, levels=c("a", "b (t=18)","b (t=23)", "ab", "c"))
 ```
@@ -314,4 +318,20 @@ c = c + geom_path(data = indirect_tbl, aes(x = time, y = BOLD, group = ID, colou
 c
 ```
 
+```{r direct_indirect, fig.height=3.7,fig.width=7,dpi=200, fig.path='C:/Users/Yenny/Documents/GitHub/functional_mediation/data_application/', include=FALSE}
+c = ggplot(data=ab_tbl, aes(y = BOLD, x = time))
+c = c +facet_grid(. ~ Parameter , scale="fixed")
 
+c$labels = list(x = "Time in seconds", y = "Intensity", colour = "Parameter")
+c = c + geom_path(data = ab_tbl, aes(x = time, y = BOLD, group = ID, colour = Parameter), size = 0.7, alpha = 0.05) + guides(colour=FALSE)
+c
+```
+
+```{r direct_indirect2, fig.height=4.7,fig.width=3.7,dpi=100,fig.path='C:/Users/Yenny/Documents/GitHub/functional_mediation/data_application/', include=FALSE}
+c = ggplot(data=ab_tbl, aes(y = BOLD, x = time))
+c = c +facet_grid(Parameter ~ . , scale="fixed")
+
+c$labels = list(x = "Time in seconds", y = "Intensity", colour = "Parameter")
+c = c + geom_path(data = ab_tbl, aes(x = time, y = BOLD, group = ID, colour = Parameter), size = 0.7, alpha = 0.05) + guides(colour=FALSE)
+c
+```
