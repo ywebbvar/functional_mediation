@@ -1,7 +1,7 @@
 Functional Mediation Analysis
 ====================
 
-This is the repo for the *retazos* of the 'fmed' R package (under construction).
+This is the repo for the functions, simulations, and figures for the paper 'Functional Mediation Analysis', as well as the *retazos* of the 'fmed' R package (under construction).
 
 Cite the Matlab code as: Lindquist, M. A. (2012). Functional Causal Mediation Analysis With an Application to Brain Connectivity. Journal of the American Statistical Association, 107(500), 1297–1309. doi:10.1080/01621459.2012.695640.
 
