@@ -1,9 +1,9 @@
-Applying Functional Mediation
+Functional Mediation Analysis
 ====================
 
-Code for applying functional mediation. 
+This is the repo for the *retazos* of the 'fmed' R package (under construction).
 
-Cite as: Lindquist, M. A. (2012). Functional Causal Mediation Analysis With an Application to Brain Connectivity. Journal of the American Statistical Association, 107(500), 1297–1309. doi:10.1080/01621459.2012.695640.
+Cite the Matlab code as: Lindquist, M. A. (2012). Functional Causal Mediation Analysis With an Application to Brain Connectivity. Journal of the American Statistical Association, 107(500), 1297–1309. doi:10.1080/01621459.2012.695640.
 
 @article{,
 author = {Lindquist, Martin A},
