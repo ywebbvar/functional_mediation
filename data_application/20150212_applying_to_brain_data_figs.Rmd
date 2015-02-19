@@ -1,0 +1,163 @@
+Simulation of brain mediation RPM model 
+========================================================
+
+In this document I simulate functional data, code the two stage least square (2SLS) procedure for estimation, and 
+
+
+
+```{r}
+library(RColorBrewer, warn.conflicts = FALSE)
+mypalette   <- brewer.pal(9, "PRGn")
+qualpalette <- brewer.pal(8,"Set2")
+```
+
+Loading data
+=========================================
+
+```{r}
+load(file="~/GitHub/functional_mediation/data_application/boot_stats.Rdata")
+library(plyr)
+library(dplyr)
+library(ggplot2)
+library(tidyr)
+library(gridExtra, warn.conflicts = FALSE)
+```
+
+
+
+```{r}
+dta2$ID <- seq(1,nrow(dta2))
+dta3 <- gather(dta2, Parameter,BOLD, -c(X, ID))
+dta3 <- dta3 %>% separate(Parameter, c("BR", "time"))
+
+dta3$BR <- factor(dta3$BR, levels=c("M", "Y"), labels = c("Region A", "Region B"))
+
+dta3$time <- factor(dta3$time, levels=paste0("V", 4:26), labels = 1:23)
+dta3$time <- as.numeric(as.character(dta3$time))*1.5
+
+dta3$Condition <- factor(dta3$X, levels=c(1,0), labels = c("High heat", "Low heat"))
+```
+
+```{r dta, fig.height=4.7,fig.width=5,dpi=100, fig.path='~/GitHub/functional_mediation/data_application/Take2_figs/', include=FALSE}
+c = ggplot(data=dta3, aes(y = BOLD, x = time, colour=Condition))
+c = c +facet_grid(Condition ~ BR , scale="fixed")
+
+c$labels = list(x = "Time in seconds", y = "Intensity", colour = "Condition")
+c = c + geom_path(data = dta3, aes(x = time, y = BOLD, group = ID, colour = Condition), size = 0.7, alpha = 0.01) + guides(colour=FALSE) + stat_smooth(size=2,level = 0.95) 
+c
+```
+
+
+```{r}
+all_stats = rbind(stats$stat$t, stats$stat2$t, stats$stat3$t, stats$stat4$t, stats$stat5$t)
+
+Pall = 2*apply(cbind(colMeans(all_stats < 2*matrix(stats$stat$t0, ncol=ncol(all_stats), nrow=nrow(all_stats), byrow = TRUE), na.rm = TRUE),colMeans(all_stats > 2*matrix(stats$stat$t0, ncol=ncol(all_stats), nrow=nrow(all_stats), byrow = TRUE), na.rm = TRUE)),1, min)
+
+colnames(all_stats) <- names(Pall) <- names(out)
+  
+source('~/GitHub/functional_mediation/sff_vec2list.R')
+source('~/GitHub/functional_mediation/lplot.R')
+```
+
+
+```{r cache=TRUE}
+tp_v = floor(seq(5,23,length.out = 7))
+
+b_fun = do.call(rbind,lapply(tp_v, function(tp) sapply(1:nrow(all_stats), function(i) sff_vec2list(all_stats[i,], stats="bsurface", surface=list(s=tp,t="all")))))
+ab_fun = do.call(rbind,lapply(tp_v, function(tp) sapply(1:nrow(all_stats), function(i) sff_vec2list(all_stats[i,], stats="absurface", surface=list(s=tp,t="all")))))
+
+b_fun_t0 = c(do.call(cbind,lapply(tp_v, function(tp) sff_vec2list(stats$stat$t0, stats="bsurface", surface=list(s=tp,t="all")))))
+ab_fun_t0 = c(do.call(cbind,lapply(tp_v, function(tp) sff_vec2list(stats$stat$t0, stats="absurface", surface=list(s=tp,t="all")))))
+
+b_and_ab_t0 = c(b_fun_t0, ab_fun_t0)
+b_and_ab = t(rbind(b_fun,ab_fun))
+
+colnames(b_and_ab) = c(sapply(tp_v, function(tp) paste0("bfunction", tp,"_", 1:23)),sapply(tp_v, function(tp) paste0("abfunction", tp,"_", 1:23)))
+```
+
+```{r}
+params = do.call(rbind, strsplit(colnames(all_stats), "_"))
+  
+fun_all = all_stats[,!(params[,1] %in% c("absurface", "bsurface"))]
+fun_all = cbind(fun_all, b_and_ab)
+
+t0 = stats$stat$t0[!(params[,1] %in% c("absurface", "bsurface"))]
+t0 = c(t0,b_and_ab_t0)
+
+params = do.call(rbind, strsplit(colnames(fun_all), "_"))
+
+all_dta = data.frame(ID=rep(1:nrow(fun_all), each=ncol(fun_all)), Parameter=params[,1], time = as.numeric(params[,2]), BOLD = c(t(fun_all)))
+
+t0_dta = data.frame(Parameter=params[,1], time = as.numeric(params[,2]), t0 = t0)
+```
+
+
+```{r}
+all_tbl = tbl_df(all_dta) 
+all_tbl$time_f <- factor(all_tbl$time, levels=1:23)
+all_tbl$time <- all_tbl$time*2
+t0_dta$time <- t0_dta$time*2
+tp = unique(all_tbl$time)[tp_v] #time points for surface cross-sections
+
+BI025_tbl = summarise(group_by(all_tbl, Parameter, time), BI025 = quantile(BOLD, probs=0.025, na.rm=TRUE))
+BI975_tbl = summarise(group_by(all_tbl, Parameter, time), BI975 = quantile(BOLD, probs=0.975, na.rm=TRUE))
+
+summ_tbl = merge(BI025_tbl,BI975_tbl)
+summ_tbl = merge(summ_tbl,t0_dta)
+
+summ_tbl = arrange(summ_tbl, Parameter, time)
+```
+
+
+
+```{r all_together, fig.height=8,fig.width=7,dpi=200, fig.path='~/GitHub/functional_mediation/data_application/Take2_figs/', include=FALSE}
+c = ggplot(data=summ_tbl, aes(y = t0, x = time))
+c = c +facet_wrap( ~ Parameter , scale="fixed")
+
+c$labels = list(x = "Time in seconds", y = "Intensity", colour = "Parameter")
+d = c + geom_ribbon(aes(ymin=BI025, ymax=BI975), fill="grey") + geom_path(data = summ_tbl, aes(x = time, y = t0,colour = Parameter),size = 1.7) + guides(colour=FALSE)  
+d
+```
+
+
+```{r each_function, fig.height=3.2,fig.width=2.7,dpi=100, fig.path='~/GitHub/functional_mediation/data_application/Take2_figs/', include=FALSE}
+c = ggplot(data=summ_tbl, aes(y = t0, x = time))
+
+myparams = levels(summ_tbl$Parameter)[!(levels(summ_tbl$Parameter) %in% c(paste0("abfunction", tp_v),paste0("bfunction", tp_v)))]
+
+for(param in myparams){
+c$labels = list(x = "Time in seconds", y = "Intensity", colour = "black")
+d = c+geom_hline(yintercept=0, size=1.7) + geom_ribbon(data = filter(summ_tbl, Parameter == param), aes(ymin=BI025, ymax=BI975), fill="grey") + geom_path(data = filter(summ_tbl, Parameter == param), aes(x = time, y = t0),size = 1.7,colour = "#002D72") + guides(colour=FALSE)#  + theme_bw()
+print(d)
+}
+```
+
+```{r each_absurface, fig.height=3.2,fig.width=2.7,dpi=100, fig.path='~/GitHub/functional_mediation/data_application/Take2_figs/', include=FALSE}
+c = ggplot(data=summ_tbl, aes(y = t0, x = time))
+
+limits <- c(-10, 10)
+breaks <- seq(limits[1], limits[2], by=5)
+
+myparams = paste0("abfunction", tp_v)
+
+for(param in myparams){
+c$labels = list(x = "Time in seconds", y = "Intensity", colour = "black")
+d = c+geom_hline(yintercept=0, size=1.7) + geom_ribbon(data = filter(summ_tbl, Parameter == param), aes(ymin=BI025, ymax=BI975), fill="grey") + geom_path(data = filter(summ_tbl, Parameter == param), aes(x = time, y = t0),size = 1.7,colour = "#002D72") +scale_y_continuous(limits=limits, breaks=breaks)+ guides(colour=FALSE)#  + theme_bw()
+print(d)
+}
+```
+
+```{r each_bsurface, fig.height=3.2,fig.width=2.7,dpi=100, fig.path='~/GitHub/functional_mediation/data_application/Take2_figs/', include=FALSE}
+c = ggplot(data=summ_tbl, aes(y = t0, x = time))
+
+limits <- c(-1, 6)
+breaks <- round(seq(limits[1], limits[2], length.out=4))
+
+myparams = paste0("bfunction", tp_v)
+
+for(param in myparams){
+c$labels = list(x = "Time in seconds", y = "Intensity", colour = "black")
+d = c+geom_hline(yintercept=0, size=1.7) + geom_ribbon(data = filter(summ_tbl, Parameter == param), aes(ymin=BI025, ymax=BI975), fill="grey") + geom_path(data = filter(summ_tbl, Parameter == param), aes(x = time, y = t0),size = 1.7,colour = "#002D72") +scale_y_continuous(limits=limits, breaks=breaks)+ guides(colour=FALSE)#  + theme_bw()
+print(d)
+}
+```

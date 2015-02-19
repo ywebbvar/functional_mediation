@@ -181,12 +181,12 @@ dta2$ID <- seq(1,nrow(dta2))
 dta3 <- gather(dta2, Parameter,BOLD, -c(X, ID))
 dta3 <- dta3 %>% separate(Parameter, c("BR", "time"))
 
-dta3$BR <- factor(dta3$BR, levels=c("M", "Y"), labels = c("Right Anterior Insula", " dorsal Anterior Cingulate Cortex"))
+dta3$BR <- factor(dta3$BR, levels=c("M", "Y"), labels = c("Region A", "Region B"))
 
 dta3$time <- factor(dta3$time, levels=paste0("V", 4:26), labels = 1:23)
 dta3$time <- as.numeric(as.character(dta3$time))*1.5
 
-dta3$Condition <- factor(dta3$X, levels=c(1,0), labels = c("High", "Low"))
+dta3$Condition <- factor(dta3$X, levels=c(1,0), labels = c("High heat", "Low heat"))
 ```
 
 ```{r dta, fig.height=4.7,fig.width=5,dpi=100, fig.path='C:/Users/Yenny/Documents/GitHub/functional_mediation/data_application/', include=FALSE}
@@ -256,6 +256,14 @@ sff_vec2list(Pall, stats="gfunction", plot=TRUE, returns = FALSE)
 ```
 
 ```{r}
+# flag zero gfunction
+
+g_fun = t(sapply(1:nrow(all_stats), function(i) sff_vec2list(all_stats[i,], stats="gfunction")))
+g_fun_sd = apply(g_fun, 1,sd)  
+```
+
+
+```{r}
   params = do.call(rbind, strsplit(colnames(all_stats), "_"))
   
   fun_all = all_stats[,!(params[,1] %in% c("absurface", "bsurface"))]
@@ -269,26 +277,28 @@ all_dta = data.frame(ID=rep(1:nrow(fun_all), each=ncol(fun_all)), Parameter=para
 
 ```{r}
 all_tbl = tbl_df(all_dta) 
+all_tbl$time <- all_tbl$time*2
+tp = unique(all_tbl$time)[c(5,12,23)] #time points for surface cross-sections
 
-all_tbl$Parameter = mapvalues(all_tbl$Parameter, from = levels(all_tbl$Parameter), to = c("ab", "ab (t=23)", "ab (t=18)", "ab (t=7)",  "a", "b (t=23)","b (t=18)","b (t=7)", "d1","d2", "c"))
-
-all_tbl$time <- all_tbl$time*1.5
-
-mediator_tbl = filter(all_tbl,Parameter %in% c("a","d1"))
-mediator_tbl$Parameter = factor(mediator_tbl$Parameter, levels=c("a","d1"))
-
-outcome_tbl = filter(all_tbl,Parameter %in% c("d2", "c","b (t=7)", "b (t=18)","b (t=23)"))
-outcome_tbl$Parameter = factor(outcome_tbl$Parameter, levels=c("d2", "c","b (t=7)", "b (t=18)","b (t=23)"))
-
-indirect_tbl = filter(all_tbl,Parameter %in% c("b (t=7)","b (t=18)","b (t=23)","a", "ab (t=7)","ab (t=18)","ab (t=23)", "ab"))
-indirect_tbl$Parameter = factor(indirect_tbl$Parameter, levels=c("b (t=7)","b (t=18)","b (t=23)","a", "ab (t=7)","ab (t=18)","ab (t=23)", "ab"))
-
-ab_tbl = filter(all_tbl,Parameter %in% c("c", "ab"))
-ab_tbl$Parameter = factor(ab_tbl$Parameter, levels=c("c", "ab"))
+all_tbl$Parameter = mapvalues(all_tbl$Parameter, from = levels(all_tbl$Parameter), to = c("ab(t)", paste0("ab(s,",tp[3],")"), paste0("ab(s,",tp[2],")"), paste0("ab(s,",tp[1],")"),  "a(s)", paste0("b(s,",tp[3],")"),paste0("b(s,",tp[2],")"),paste0("b(s,",tp[1],")"), "d1(s)","d2(t)", "c(t)"))
 
 
-small_tbl = filter(all_tbl,Parameter %in% c("a", "b (t=18)","b (t=23)", "ab", "c"))
-small_tbl$Parameter = factor(small_tbl$Parameter, levels=c("a", "b (t=18)","b (t=23)", "ab", "c"))
+
+mediator_tbl = filter(all_tbl,Parameter %in% c("d1(s)","a(s)"))
+mediator_tbl$Parameter = factor(mediator_tbl$Parameter, levels=c("d1(s)","a(s)"))
+
+outcome_tbl = filter(all_tbl,Parameter %in% c("d2(t)", "c(t)",paste0("b(s,",tp[3],")"),paste0("b(s,",tp[2],")"),paste0("b(s,",tp[1],")")))
+outcome_tbl$Parameter = factor(outcome_tbl$Parameter, levels=c("d2(t)", "c(t)",paste0("b(s,",tp[3],")"),paste0("b(s,",tp[2],")"),paste0("b(s,",tp[1],")")))
+
+indirect_tbl = filter(all_tbl,Parameter %in% c(paste0("b(s,",tp[3],")"),paste0("b(s,",tp[2],")"),paste0("b(s,",tp[1],")"),"a(s)", paste0("ab(s,",tp[3],")"), paste0("ab(s,",tp[2],")"), paste0("ab(s,",tp[1],")"), "ab(t)"))
+indirect_tbl$Parameter = factor(indirect_tbl$Parameter, levels=c(paste0("b(s,",tp[3],")"),paste0("b(s,",tp[2],")"),paste0("b(s,",tp[1],")"),"a(s)", paste0("ab(s,",tp[3],")"), paste0("ab(s,",tp[2],")"), paste0("ab(s,",tp[1],")"), "ab(t)"))
+
+ab_tbl = filter(all_tbl,Parameter %in% c("c(t)", "ab(t)"))
+ab_tbl$Parameter = factor(ab_tbl$Parameter, levels=c("c(t)", "ab(t)"))
+
+
+small_tbl = filter(all_tbl,Parameter %in% c("a(s)", paste0("b(s,",tp[2],")"),paste0("b(s,",tp[3],")"), "ab(t)", "c(t)"))
+small_tbl$Parameter = factor(small_tbl$Parameter, levels=c("a(s)", paste0("b(s,",tp[2],")"),paste0("b(s,",tp[3],")"), "ab(t)", "c(t)"))
 ```
 
 ```{r sff_med_model, fig.height=3.2,fig.width=5,dpi=100, fig.path='C:/Users/Yenny/Documents/GitHub/functional_mediation/data_application/', include=FALSE}
