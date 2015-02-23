@@ -4,4 +4,4 @@ git pull
 
 cd data_application/data_application_cPain_gypsie
 
-qsub -N withinbs -cwd -pe local 3 -R y -l mem_free=7G,h_vmem=8G, data_application_cPain_gypsie.sh
+qsub -N withinbs -cwd -pe local 15 -R y -l mem_free=7G,h_vmem=8G, data_application_cPain_gypsie.sh
