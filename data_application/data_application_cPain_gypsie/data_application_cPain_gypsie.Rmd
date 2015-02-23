@@ -17,7 +17,7 @@ library(mgcv)
 if(cluster){
   source('/home/bst/student/ywebbvar/Github/functional_mediation/sfs_Mediation.R')
   source('/home/bst/student/ywebbvar/Github/functional_mediation/est_se_fgam.R')
-  meta_file = '/home/bst/student/ywebbvar/Github/functional_mediation/meta.mat'
+  meta_file = '/home/bst/student/ywebbvar/Github/functional_mediation/data_application/meta.mat'
   }else{
   source('~/GitHub/functional_mediation/sfs_Mediation.R')  
   source('~/GitHub/functional_mediation/est_se_fgam.R')  
