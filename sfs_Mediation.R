@@ -23,7 +23,7 @@
 #' @examples
 #' sfs_Mediation(x,y,m,...)
 
-sfs_Mediation <- function(x,y,m,mediatorMethod="fosr2s", outcomeMethod="fgam", nbasis,norder,lambda=1e-8,pen=0.1, plot=FALSE, boot=FALSE){
+sfs_Mediation <- function(x,y,m,mediatorMethod="fosr2s", outcomeMethod="fgam", splinepars_lf=list(bs="ps",m=c(3,2)), nbasis,norder,lambda=1e-8,pen=0.1, plot=FALSE, boot=FALSE){
   
   require(refund)
   require(mgcv)
@@ -158,8 +158,9 @@ sfs_Mediation <- function(x,y,m,mediatorMethod="fosr2s", outcomeMethod="fgam", n
     
   }else{
     if(outcomeMethod=="fgam"){
+      if(is.null(splinepars_lf[["k"]])) splinepars_lf[["k"]] = ifelse(N < 52, N-2, 50)
       m = t(m)
-      fit  = fgam(y ~ x + lf(m,splinepars=list(bs="ps", k=ifelse(N < 52, N-2, 50),m=c(3,2)))) # Defaults to quartic (m[1]=3) P-splines (bs="ps") with 2nd derivative order penalty (m[2]=2), and at most 50-dimensional basis 
+      fit  = fgam(y ~ x + lf(m,splinepars=splinepars_lf)) # Defaults to quartic (m[1]=3) P-splines (bs="ps") with 2nd derivative order penalty (m[2]=2), and at most 50-dimensional basis 
       bfun = fit$smooth[[1]]
       P   = est_se_fgam(fit, term=1,n=len)
       bf  = P$estimate
