@@ -56,9 +56,11 @@ names(meta) = list_names
 
 ```{r}
 get_data0 <- function(subj){
-  M  = meta[["heat_crating"]][[subj]][[1]][1:36,1:230]
+  M  = meta[["heat_crating"]][[subj]][[1]][1:36,]
   Yt = meta[["ratings"]][[subj]][[1]]
   X  = meta[["heat_level"]][[subj]][[1]][1:36]
+  
+  colnames(M) = paste0('M',1:ncol(M))
   
   Y = rep(NA, 36)
   Y[1:length(Yt)] = Yt # Assuming the observed values represent the first trials
@@ -78,29 +80,9 @@ apply(big_dta0,2,function(x) sum(is.na(x)))
 
 There are 131 observations missing Y, and by time point 187, there are many more NaNs.
 
-Dropping all rows with missing Y:
 
-```{r}
-get_data <- function(subj){
-  Y  = meta[["ratings"]][[subj]][[1]]
-  M  = meta[["heat_crating"]][[subj]][[1]][1:length(Y),1:186]
-  X  = meta[["heat_level"]][[subj]][[1]][1:length(Y)]
-  
-  n_miss = 36 - length(Y)
-  
-  dta = data.frame(ID = subj, n_miss = n_miss, X, Y, M)
-  return(dta)
-}
-```
+Dropping all cases with missing mediator, missing outcome, and subsetting to 186 time points:
 
-```{r}
-big_dta = get_data(1)
-for(i in 2:93) big_dta = rbind(big_dta, get_data(i)) 
-apply(big_dta,2,function(x) sum(is.na(x)))
-apply(big_dta,1,function(x) sum(is.na(x))) # Sometimes, the mediator is missing
-```
-
-Dropping all cases with missing mediator:
 ```{r}
 get_data <- function(subj){
   M  = meta[["heat_crating"]][[subj]][[1]][1:36,1:186]
@@ -128,60 +110,12 @@ apply(big_dta,2,function(x) sum(is.na(x)))
 apply(big_dta,1,function(x) sum(is.na(x)))
 ```
 
+# Plots!
 
-# Applying functional mediation
+Following [this post](https://learnr.wordpress.com/2010/01/26/ggplot2-quick-heatmap-plotting/)
 
-```{r fbootstrap}
-fbootstrap_ML <- function(dta, index){
-  dta = dta[index,]
-  Y = dta[,"Y"]
-  X = dta[,"X"]
-  M = dta[,grep('M', names(dta))]
-  
-  result = sfs_Mediation(X,Y,t(M),mediatorMethod="fosr2s", outcomeMethod="fgam",splinepars_lf=list(bs="ps",m=c(2, 1)),nbasis=nbasis,norder=norder,lambda=lambda, plot=FALSE, boot=TRUE)
-  return(result)
-}
-```
-
-Setting seed:
 ```{r}
-if(cluster) RNGkind("L'Ecuyer-CMRG")
-seed = 340953
-set.seed(seed)
-```
-
-```{r, eval=FALSE}
-X = big_dta$X
-Y = big_dta$Y
-M = big_dta[,grep('M', colnames(big_dta))]
-
-nbasis = 50
-norder = 6
-lambda = 1e-10 #1e-14 when 0.01 sd_epsilon
-plots = TRUE
-
-time1 = Sys.time()
-mediation = sfs_Mediation(x = X,y = Y,m = t(M),mediatorMethod="fosr2s", outcomeMethod="fgam",splinepars_lf=list(bs="ps",m=c(2, 1)),nbasis=nbasis,norder=norder,lambda=lambda, plot=plots, boot=FALSE)
-time2 = Sys.time()
-
-library(boot)
-library(parallel)
-library(snow)
-library(doSNOW)
-
-cl <- makeCluster(4, type="SOCK")
-registerDoSNOW(cl)
-
-time3 = Sys.time()
-stat1 = boot(data = big_dta, statistic = fbootstrap_ML,R = 100,sim = "ordinary",stype = "i", parallel="snow")
-time4 = Sys.time()
-time4 - time3
-stopCluster(cl)
-
-time5 = Sys.time()
-stat2 = boot(data = big_dta, statistic = fbootstrap_ML,R = 100,sim = "ordinary",stype = "i")
-time6 = Sys.time()
-time6 - time5
+library(ggplot2)
 
 ```
 
