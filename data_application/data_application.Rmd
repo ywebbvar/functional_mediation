@@ -14,7 +14,7 @@ source('~/GitHub/functional_mediation/est_se_fgam.R')
 ```
 
 
-```{r}
+```{r, cache=TRUE}
 library(R.matlab)
 meta_file = '~/GitHub/functional_mediation/data_application/meta.mat'
 
@@ -72,7 +72,7 @@ get_data0 <- function(subj){
 }
 ```
 
-```{r}
+```{r, cache=TRUE}
 big_dta0 = get_data0(1)
 for(i in 2:93) big_dta0 = rbind(big_dta0, get_data0(i)) 
 apply(big_dta0,2,function(x) sum(is.na(x)))
@@ -116,6 +116,33 @@ Following [this post](https://learnr.wordpress.com/2010/01/26/ggplot2-quick-heat
 
 ```{r}
 library(ggplot2)
+library(reshape2)
+library(plyr)
 
+big_dta0.m <- melt(big_dta0, id=c("ID", "n_miss", "X", "Y"), value.name="value")
+big_dta0.m2 <- ddply(big_dta0.m, .(variable), transform, scale = scale(value))
+```
+
+# Unscaled data
+```{r}
+p <- ggplot(big_dta0.m, aes(variable, ID)) + geom_tile(aes(fill = value), colour = "white") + scale_fill_gradient(low = "white", high = "steelblue")
+base_size <- 9
+p <- p + theme_grey(base_size = base_size) + labs(x = "", y = "") + scale_x_discrete(expand = c(0, 0)) + scale_y_discrete(expand = c(0, 0)) + theme(legend.position = "none", axis.ticks = element_blank(), axis.text.x = element_text(size = base_size * 0.8, angle = 330, hjust = 0, colour = "grey50"))
+```
+
+```{r, fig.height=10,fig.width=5}
+p
+```
+
+
+# Scaled data
+```{r}
+p <- ggplot(big_dta0.m2, aes(variable, ID)) + geom_tile(aes(fill = scale), colour = "white") + scale_fill_gradient(low = "white", high = "steelblue")
+base_size <- 9
+p <- p + theme_grey(base_size = base_size) + labs(x = "", y = "") + scale_x_discrete(expand = c(0, 0)) + scale_y_discrete(expand = c(0, 0)) + theme(legend.position = "none", axis.ticks = element_blank(), axis.text.x = element_text(size = base_size * 0.8, angle = 330, hjust = 0, colour = "grey50"))
+```
+
+```{r, fig.height=10,fig.width=5}
+p
 ```
 
