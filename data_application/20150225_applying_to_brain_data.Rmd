@@ -122,9 +122,51 @@ lambda = 1e-10
 
 ```{r}
 time1 = Sys.time()
-out_full <- sff_Mediation(X,Y,t(M),mediatorMethod="fosr2s", nbasis=nbasis,norder=norder,lambda=lambda, plot=FALSE, boot=FALSE)
+out_full <- sff_Mediation(X,Y,t(M),mediatorMethod="fosr2s", nbasis=nbasis,norder=norder,lambda=lambda, plot=FALSE, boot=FALSE, return_fits =TRUE)
 time2 = Sys.time()
 time2 - time1
+```
 
+```{r}
 save(out_full, file="~/GitHub/functional_mediation/data_application/out_full.Rdata")
 ```
+
+# Outcome model
+
+```{r}
+class(out_full$output_model_fit$smooth[["s(yindex.vec)"]])
+out_full$output_model_fit$smooth[["s(yindex.vec)"]]$bs.dim
+out_full$output_model_fit$smooth[["s(yindex.vec)"]]$p.order
+```
+
+For the outcome model, there are three smooth functions to estimate. For the intercept, we used 20 cubic P-splines with penalty in the second order derivative. 
+
+```{r}
+class(out_full$output_model_fit$smooth[["s(yindex.vec):x"]])
+out_full$output_model_fit$smooth[["s(yindex.vec):x"]]$bs.dim
+out_full$output_model_fit$smooth[["s(yindex.vec):x"]]$p.order
+```
+
+For the effect of the treatment (X) on the outcome, we used five cubic P-splines with penalty in the second derivative.
+
+```{r}
+class(out_full$output_model_fit$smooth[["te(m.smat,m.tmat):L.m"]])
+class(out_full$output_model_fit$smooth[["te(m.smat,m.tmat):L.m"]][[1]][[1]])
+out_full$output_model_fit$smooth[["te(m.smat,m.tmat):L.m"]][[1]][[1]]$bs.dim
+out_full$output_model_fit$smooth[["te(m.smat,m.tmat):L.m"]][[1]][[1]]$p.order
+class(out_full$output_model_fit$smooth[["te(m.smat,m.tmat):L.m"]][[1]][[2]])
+out_full$output_model_fit$smooth[["te(m.smat,m.tmat):L.m"]][[1]][[2]]$bs.dim
+out_full$output_model_fit$smooth[["te(m.smat,m.tmat):L.m"]][[1]][[2]]$p.order
+```
+
+For the function-on-function coefficient, we used a tensor product smooth using 5 cubic P-splines with second derivative penalties for both margins. 
+
+# Mediator
+
+```{r}
+out_full$mediator_model_fit[[1]]$basis$type
+out_full$mediator_model_fit[[1]]$basis$nbasis
+```
+
+For the mediatior model, We used 15 cubic b-splines with penalty on the second derivative. (pen.order = norder - 2, and we specify nbasis = 15, norder = 4 in the sff_Mediation call)
+
