@@ -23,7 +23,7 @@
 #' @examples
 #' fMediation_ML(x,y,m,...)
 
-sff_Mediation <- function(x,y,m,mediatorMethod="fosr2s", splinepars_ff=list(bs="pss",m=list(c(2, 1), c(2,1))),nbasis,norder,lambda=1e-8,pen=0.1, plot=FALSE, boot=FALSE, ask=FALSE){
+sff_Mediation <- function(x,y,m,mediatorMethod="fosr2s", splinepars_ff=list(bs="pss",m=list(c(2, 1), c(2,1))),nbasis,norder,lambda=1e-8,pen=0.1, plot=FALSE, boot=FALSE, ask=FALSE, return_fits=FALSE){
   
   require(refund)
   
@@ -161,17 +161,7 @@ sff_Mediation <- function(x,y,m,mediatorMethod="fosr2s", splinepars_ff=list(bs="
     par(mfrow=mipar, ask=FALSE)
   }
   
-  if(boot==FALSE) {result = list('afunction'  = af,  'a_stderr' = a_stderr, 
-                                 'd1function' = d1f, 'd1_stderr' = d1_stderr,  
-                                 'bsurface'   = bf,  'b_stderr' = b_stderr, 
-                                 'gfunction'  = gf,  'g_stderr' = g_stderr,
-                                 'd2function' = d2f, 'd2_stderr' = d2_stderr,  
-                                 'absurface'  = abs, 'abfunction' = abf, 
-                                 'x' = x, 
-                                 'y' = y, 
-                                 'm' = m,
-                                 'tfine' = tfine,'ResM'= ResM,'ResY'= ResY)
-  }else{
+  if(boot==TRUE) {
     result = c(c(t(abs)), abf, af, c(t(bf)), gf, d1f,d2f)
     names(result) = c(paste0('absurface_',  1:length(c(t(abs)))),
                       paste0('abfunction_', 1:length(abf)),
@@ -181,7 +171,31 @@ sff_Mediation <- function(x,y,m,mediatorMethod="fosr2s", splinepars_ff=list(bs="
                       paste0('d1function_', 1:length(d1f)),
                       paste0('d2function_', 1:length(d2f))
     )
-  }
+    }else{if(return_fits){result = list()
+  result[["estimates"]] = c(c(t(abs)), abf, af, c(t(bf)), gf, d1f,d2f)
+  names(result[["estimates"]]) = c(paste0('absurface_',  1:length(c(t(abs)))),
+                    paste0('abfunction_', 1:length(abf)),
+                    paste0('afunction_',  1:length(af)),
+                    paste0('bsurface_',   1:length(c(t(bf)))),
+                    paste0('gfunction_',  1:length(gf)),
+                    paste0('d1function_', 1:length(d1f)),
+                    paste0('d2function_', 1:length(d2f))
+  )
+  result[["output_model_fit"]] = fit
+  result[["mediator_model_fit"]] = ifelse(mediatorMethod=="fosr2s", fit_m,fRegressCell)
+  }else{
+    result = list('afunction'  = af,  'a_stderr' = a_stderr, 
+                  'd1function' = d1f, 'd1_stderr' = d1_stderr,  
+                  'bsurface'   = bf,  'b_stderr' = b_stderr, 
+                  'gfunction'  = gf,  'g_stderr' = g_stderr,
+                  'd2function' = d2f, 'd2_stderr' = d2_stderr,  
+                  'absurface'  = abs, 'abfunction' = abf, 
+                  'x' = x, 
+                  'y' = y, 
+                  'm' = m,
+                  'tfine' = tfine,'ResM'= ResM,'ResY'= ResY)
+    
+  }}
   
   return(result)
   

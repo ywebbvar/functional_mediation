@@ -23,7 +23,7 @@
 #' @examples
 #' sfs_Mediation(x,y,m,...)
 
-sfs_Mediation <- function(x,y,m,mediatorMethod="fosr2s", outcomeMethod="fgam", splinepars_lf=list(bs="ps",m=c(3,2)), nbasis,norder,lambda=1e-8,pen=0.1, plot=FALSE, boot=FALSE){
+sfs_Mediation <- function(x,y,m,mediatorMethod="fosr2s", outcomeMethod="fgam", splinepars_lf=list(bs="ps",m=c(3,2)), nbasis,norder,lambda=1e-8,pen=0.1, plot=FALSE, boot=FALSE, return_fits=FALSE){
   
   require(refund)
   require(mgcv)
@@ -63,36 +63,42 @@ sfs_Mediation <- function(x,y,m,mediatorMethod="fosr2s", outcomeMethod="fgam", s
   
   if(mediatorMethod=="fRegress"){
     # Solve least-squares equation
-    fRegressCell = fRegress(mfdPar, xfdcell, betacell)
-    betaestcell  = fRegressCell[[4]]
+    fRegressCell_M = fRegress(mfdPar, xfdcell, betacell)
+    betaestcell  = fRegressCell_M[[4]]
     afun         = betaestcell[[2]]$fd
+    d1fun        = betaestcell[[1]]$fd
     
     tfine = seq(0,T_sup, length.out=len)
     af    = eval.fd(tfine,afun)
     a     = sum(af)*(tfine[2] - tfine[1])
+    d1f   = eval.fd(tfine,d1fun)
     
-    ResM  = (m - eval.fd(tfine, fRegressCell[[5]]$fd))
+    ResM  = (m - eval.fd(tfine, fRegressCell_M[[5]]$fd))
     
     # Calculate Standard Error
-    errmat     = m - eval.fd(tfine, fRegressCell[[5]]$fd)
+    errmat     = m - eval.fd(tfine, fRegressCell_M[[5]]$fd)
     Sigma      = errmat%*%t(errmat)/N  # Originally, there was a 20 here, I assume it is the number of observations N
     DfdPar     = fdPar(basis, 0, 1)
     y2cMap     = smooth.basis(timevec,m,DfdPar)$y2cMap
-    stderrCell = fRegress.stderr(fRegressCell, y2cMap, Sigma)
+    stderrCell = fRegress.stderr(fRegressCell_M, y2cMap, Sigma)
     tmp        = stderrCell[[1]]
     
     a_stderr = eval.fd(tfine, tmp[[2]]) # Std Error of a-function
-    #plotbeta(betaestlist = fRegressCell$betaestlist, betastderrlist = stderrCell$betastderrlist)
+    d1_stderr= eval.fd(tfine, tmp[[1]]) # Std Error of d1-function
+    
+    #plotbeta(betaestlist = fRegressCell_M$betaestlist, betastderrlist = stderrCell$betastderrlist)
   }else{
     if(mediatorMethod=="fosr2s"){
       tfine = seq(0,T_sup, length.out=len)
       
-      fit = fosr2s(Y = t(m), cbind(int=1,x=x), argvals = tfine, nbasis = 15, norder = 4, basistype = "bspline")
-      af  = fit$est.func[,2]
+      fit_m = fosr2s(Y = t(m), cbind(int=1,x=x), argvals = tfine, nbasis = 15, norder = 4, basistype = "bspline")
+      af  = fit_m$est.func[,2]
       a   = sum(af)*(tfine[2] - tfine[1])
+      d1f = fit_m$est.func[,1]
       
-      ResM     = t(t(m) - fit$yhat)
-      a_stderr = fit$se.func[,2]
+      ResM     = t(t(m) - fit_m$yhat)
+      a_stderr = fit_m$se.func[,2]
+      d1_stderr= fit_m$se.func[,1]
     }else{stop("mediatorMethod must be 'fRegress' or 'fosr2s'")}
   }
   
@@ -123,23 +129,24 @@ sfs_Mediation <- function(x,y,m,mediatorMethod="fosr2s", outcomeMethod="fgam", s
     betacell[[3]] = fdPar(betafd1)
     
     # Solve least-squares equation
-    fRegressCell = fRegress(yfdPar, mfdcell, betacell)
-    betaestcell  = fRegressCell[[4]]
+    fRegressCell_Y = fRegress(yfdPar, mfdcell, betacell)
+    betaestcell  = fRegressCell_Y[[4]]
     bfun         = betaestcell[[2]]$fd
     
     # Calculate Standard Error
-    errmat     = y - fRegressCell[[5]]
+    errmat     = y - fRegressCell_Y[[5]]
     ResY       = errmat
     Sigma      = errmat%*%t(errmat)/N  # Originally, there was a 20 here, I assume it is the number of observations N
     DfdPar     = fdPar(basis, 0, 1)
     y2cMap     = smooth.basis(timevec,m,DfdPar)$y2cMap
-    stderrCell = fRegress.stderr(fRegressCell, y2cMap, Sigma)
+    stderrCell = fRegress.stderr(fRegressCell_Y, y2cMap, Sigma)
     tmp        = stderrCell[[1]]
     
-    b_stderr = eval.fd(tfine, tmp[[2]]) # Std Error of b-function
+    b_stderr  = eval.fd(tfine, tmp[[2]]) # Std Error of b-function
+    g_stderr  = tmp[[3]]$coefs # Std Error of gamma
+    d2_stderr = tmp[[1]]$coefs # Std Error of intercept d2
     
-    
-    
+        
     bf = eval.fd(tfine,bfun)            # Evaluate b-function  
     b  = sum(bf)*(tfine[2]-tfine[1])    # Integral of b-function: b = \int bf(t) dt gives b-path
     
@@ -150,11 +157,10 @@ sfs_Mediation <- function(x,y,m,mediatorMethod="fosr2s", outcomeMethod="fgam", s
     }
     ab  = sum(abf)*(tfine[2]-tfine[1])  # Integral of ab-function: ab = \int af(t)bf(t) dt gives ab-path
     
-    tmp = eval.fd(tfine, betaestcell[[3]]$fd) # c'-path
-    cp  = tmp[1]
+    g  = eval.fd(tfine, betaestcell[[3]]$fd)[1] # gamma (direct effect)
     
-    tmp = eval.fd(tfine, betaestcell[[1]]$fd) # intercept
-    int  = tmp[1]
+    tmp = eval.fd(tfine, betaestcell[[1]]$fd) # d2 intercept
+    d2  = tmp[1]
     
   }else{
     if(outcomeMethod=="fgam"){
@@ -172,10 +178,11 @@ sfs_Mediation <- function(x,y,m,mediatorMethod="fosr2s", outcomeMethod="fgam", s
       abf = af*bf
       ab  = sum(abf)*(tfine[2]-tfine[1])  # Integral of ab-function: ab = \int af(t)bf(t) dt gives ab-path
       
-      cp  = fit$coef["x"]
-      int = fit$coef["(Intercept)"]
+      g  = fit$coef["x"]
+      d2 = fit$coef["(Intercept)"]
       
-      
+      g_stderr  = summary(fit)$se["x"]
+      d2_stderr = summary(fit)$se["(Intercept)"]
     }else{stop("outcomeMethod must be 'fgam' or 'fRegress'")}
   }
   
@@ -197,10 +204,41 @@ sfs_Mediation <- function(x,y,m,mediatorMethod="fosr2s", outcomeMethod="fgam", s
   }
   #plot(x,y)
   
-  if(boot==FALSE) {result = list('afunction' = af, 'a' = a, 'bfunction' = bf, 'abfunction' = abf, 'b' = b, 'ab' = ab, 'cp' = cp, 'Y_intercept' = int, 'x' = x, 'y' = y, 'm' = m,'tfine' = tfine,'b_stderr' = b_stderr,'ResM'= ResM,'ResY'= ResY)
+  if(boot==TRUE) {
+    result = c(abf,ab, af, bf, g, d1f,d2)
+    names(result) = c(paste0('abfunction_', 1:length(abf)),
+                      "ab",
+                      paste0('afunction_',  1:length(af)),
+                      paste0('bfunction_',   1:length(bf)),
+                      "g",
+                      paste0('d1function_',   1:length(d1f)),
+                      "d2")
+  }else{if(return_fits){result = list()
+                        result[["estimates"]] = c(abf, ab, af, bf, g, d1f,d2)
+                        names(result[["estimates"]]) = c(paste0('abfunction_', 1:length(abf)),
+                                                         "ab",
+                                                         paste0('afunction_',  1:length(af)),
+                                                         paste0('bfunction_',   1:length(c(t(bf)))),
+                                                         "g",
+                                                         paste0('d1function_',   1:length(d1f)),
+                                                         "d2")
+                        result[["output_model_fit"]] = ifelse(outcomeMethod=="fgam", fit,fRegressCell_Y)
+                        result[["mediator_model_fit"]] = ifelse(mediatorMethod=="fosr2s", fit_m,fRegressCell_M)
   }else{
-    result = abf
-  }
+    result = list('afunction'  = af, 'a_stderr'  = a_stderr, 
+                  'd1function' = d1f,'d1_stderr' = d1_stderr,  
+                  'bfunction'  = bf, 'b_stderr'  = b_stderr, 
+                  'g'          = g,  'g_stderr'  = g_stderr,
+                  'd2'         = d2, 'd2_stderr' = d2_stderr,  
+                  'abfunction' = abf, 
+                  "ab" = ab,
+                  'x' = x, 
+                  'y' = y, 
+                  'm' = m,
+                  'tfine' = tfine,'ResM'= ResM,'ResY'= ResY)
+    
+  }}
+  
   
   return(result)
   
