@@ -15,8 +15,8 @@ Loading data
 =========================================
 
 ```{r}
-load(file="~/GitHub/functional_mediation/data_application/data_application_cPain_gypsie/Data_analysis_cPain_20150304-2125.Rdata")
-load(file="~/GitHub/functional_mediation/data_application/data_application_cPain_gypsie/Data_analysis_cPain_out.Rdata")
+load(file="~/GitHub/functional_mediation/data_application/data_application_cPain_gypsie/Data_analysis_cPain_15_20150305-1200.Rdata")
+load(file="~/GitHub/functional_mediation/data_application/data_application_cPain_gypsie/Data_analysis_cPain_out_15.Rdata")
 library(plyr)
 library(dplyr)
 library(ggplot2)
@@ -37,7 +37,7 @@ source('~/GitHub/functional_mediation/lplot.R')
 ```
 
 
-```{r cache=TRUE}
+```{r}
 b_fun = sapply(1:nrow(all_stats), function(i) sff_vec2list(all_stats[i,], stats="bfunction"))
 ab_fun = sapply(1:nrow(all_stats), function(i) sff_vec2list(all_stats[i,], stats="abfunction"))
 
@@ -109,7 +109,7 @@ c
 ```
 
 
-```{r sfs_cPain_each_function, fig.height=3.2,fig.width=4,dpi=100, include=TRUE}
+```{r sfs_cPain_each_function, fig.height=3.2,fig.width=4,dpi=100, fig.path='~/GitHub/functional_mediation/data_application/data_application_cPain_gypsie/', include=FALSE,}
 c = ggplot(data=summ_tbl, aes(y = t0, x = time))
 
 myparams = levels(summ_tbl$Parameter)[!(levels(summ_tbl$Parameter) %in% c("ab", "d2", "g"))]
