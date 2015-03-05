@@ -44,7 +44,7 @@ sff_vec2list <- function(result, len=NULL,result_names=names(result), stats="all
     par(mfrow=mipar, ask=FALSE)
   }
   }else if(stats %in% c('afunction', 'bsurface', 'gfunction', 'd1function', 'd2function', 
-                       'absurface', 'abfunction')){
+                       'absurface', 'abfunction', 'bfunction')){
     if(length(grep('surface', stats)) == 0){
       results = result[grep(paste0('^',stats), result_names)]
       
@@ -82,7 +82,7 @@ sff_vec2list <- function(result, len=NULL,result_names=names(result), stats="all
     
   }else{
     stop("stats is not one of: 'afunction', 'bsurface', 'gfunction', 'd1function', 'd2function', 
-         'absurface', 'abline'")
+         'absurface', 'abfunction', 'bfunction'")
   }
   
   if(returns==TRUE)return(results)
