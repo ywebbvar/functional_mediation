@@ -142,7 +142,10 @@ get_data <- function(subj){
 ```r
 big_dta = get_data(1)
 for(i in 2:93) big_dta = rbind(big_dta, get_data(i)) 
+#Removing outliers
 big_dta = big_dta[big_dta$M186 <2,]
+#Setting heat level to baseline
+big_dta$X = big_dta$X - min(big_dta$X)
 ```
 
 
@@ -156,7 +159,13 @@ fbootstrap_ML <- function(dta, index){
   X = dta[,"X"]
   M = dta[,grep('M', names(dta))]
   
-  result = sfs_Mediation(X,Y,t(M),mediatorMethod="fosr2s", outcomeMethod="fgam",splinepars_lf=list(bs="ps",m=c(2, 1)),nbasis=nbasis,norder=norder,lambda=lambda, plot=FALSE, boot=TRUE)
+  result = sfs_Mediation(X,Y,t(M),
+                         mediatorMethod="fosr2s",
+                         splinepars_fosr2s=list(nbasis = 15, norder = 4, 
+                                                basistype = "bspline"), 
+                         outcomeMethod="fgam",
+                         splinepars_fgam=list(bs="ps",m=c(2, 1), k=15),
+                         plot=FALSE, boot=TRUE)
   return(result)
 }
 ```
@@ -184,7 +193,12 @@ plots = FALSE
 
 ```r
 time1 = Sys.time()
-mediation = sfs_Mediation(x = X,y = Y,m = t(M),mediatorMethod="fosr2s", outcomeMethod="fgam",splinepars_lf=list(bs="ps",m=c(2, 1)),nbasis=nbasis,norder=norder,lambda=lambda, plot=plots, boot=FALSE)
+mediation = sfs_Mediation(x = X,y = Y,m = t(M),mediatorMethod="fosr2s",
+                     splinepars_fosr2s=list(nbasis = 15, norder = 4, 
+                                            basistype = "bspline"), 
+                     outcomeMethod="fgam",
+                     splinepars_fgam=list(bs="ps",m=c(2, 1), k=15),plot=FALSE, 
+                     boot=FALSE)
 time2 = Sys.time()
 
 time3 = Sys.time()
@@ -194,9 +208,9 @@ time4 - time3
 ```
 
 ```
-## Time difference of 16.51756 mins
+## Time difference of 17.1872 mins
 ```
 
 ```r
-save(mediation,stat, file=paste0("Data_analysis_cPain_",format(Sys.time(), "%Y%m%d-%H%M"),".Rdata"))
+save(mediation,stat, file=paste0("Data_analysis_cPain_15_",format(Sys.time(), "%Y%m%d-%H%M"),".Rdata"))
 ```
