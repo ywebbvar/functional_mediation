@@ -112,7 +112,7 @@ sfs_Mediation <- function(x,y,m,mediatorMethod="fosr2s", splinepars_fosr2s=list(
     mfdcell      = list()
     
     mfdcell[[1]] = confd
-    basis        = create.bspline.basis(c(0,T_sup), nbasis, norder)
+    basis        = create.bspline.basis(c(0,T_sup), splinepars_fRegress$nbasis, splinepars_fRegress$norder)
     mfdcell[[2]] = Data2fd(argvals = timevec, y = m, basis)
     mfdcell[[3]] = fd(matrix(x,nrow=1,ncol=N),conbas)
     
@@ -123,7 +123,7 @@ sfs_Mediation <- function(x,y,m,mediatorMethod="fosr2s", splinepars_fosr2s=list(
     betacell      = list()
     betafd1       = fd(1,conbas)
     betacell[[1]] = fdPar(betafd1)
-    betafdj       = fd(rep(0,nbasis), basis)
+    betafdj       = fd(rep(0,splinepars_fRegress$nbasis), basis)
     betafdPar     = fdPar(betafdj, lambda=splinepars_fRegress$lambda)
     betacell[[2]] = betafdPar
     betacell[[3]] = fdPar(betafd1)
