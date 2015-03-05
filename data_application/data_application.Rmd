@@ -121,12 +121,12 @@ library(plyr)
 
 big_dta0.m <- melt(big_dta0, id=c("ID","ID2", "n_miss", "X", "Y"), value.name="value")
 
-big_dta0.m$ID3 = with(big_dta0.m, paste0(ID,ID2))
+big_dta0.m$time = as.numeric(big_dta0.m$variable)
+big_dta0.m$ID3  = with(big_dta0.m, paste0(ID,ID2))
 ```
 
 
-# Unscaled data
-```{r}
+```{r, eval=FALSE}
 p <- ggplot(big_dta0.m, aes(variable, ID3)) + geom_tile(aes(fill = value), colour = "white") + scale_fill_gradient(low = "white", high = "steelblue")
 base_size <- 9
 p <- p + theme_grey(base_size = base_size) + labs(x = "", y = "") + scale_x_discrete(expand = c(0, 0)) + scale_y_discrete(expand = c(0, 0)) + theme(legend.position = "none", axis.ticks = element_blank(), axis.text.x = element_text(size = base_size * 0.8, angle = 330, hjust = 0, colour = "grey50"))
@@ -136,9 +136,20 @@ p <- p + theme_grey(base_size = base_size) + labs(x = "", y = "") + scale_x_disc
 p
 ```
 
-
+# Heatmap
 ```{r,fig.height=9,fig.width=7,dpi=100}
 all_M = big_dta0[,grep("M", colnames(big_dta0))]
 image(t(all_M))
 ```
 
+```{r}
+hist(all_M[,186])
+table(all_M[,186]>20)
+table(all_M[,186]>15)
+table(all_M[,186]>10)
+hist(all_M[all_M[,186]<15, 186])
+hist(all_M[all_M[,186]<2, 186])
+table(all_M[,186]>2)
+```
+
+I will remove all entries that have mediator levels 2 or larger. 
