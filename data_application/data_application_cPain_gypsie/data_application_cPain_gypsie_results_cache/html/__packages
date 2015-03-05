@@ -1,0 +1,14 @@
+base
+datasets
+dplyr
+ggplot2
+graphics
+grDevices
+grid
+gridExtra
+methods
+plyr
+RColorBrewer
+stats
+tidyr
+utils

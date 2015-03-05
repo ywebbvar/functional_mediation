@@ -88,8 +88,7 @@ point_dta = summ_tbl[(summ_tbl$Parameter %in% c("ab", "g", "d2")), ]
 point_dta$Parameter = factor(point_dta$Parameter, levels=c("ab", "g", "d2"), labels=c("Indirect Effect", "Direct Effect", "Delta 2"))
 ```
 
-
-```{r all_together, fig.height=3.5,fig.width=8,dpi=200, include=FALSE}
+```{r sfs_cPain_lines, fig.height=3.5,fig.width=8,dpi=200, fig.path='C:/Users/Yenny/Dropbox/sharelatex/Functional_Mediation_Analysis/', include=FALSE}
 c = ggplot(data=line_dta, aes(y = t0, x = time))
 c = c +facet_wrap( ~ Parameter , scale="free")
 
@@ -98,57 +97,26 @@ d = c +geom_hline(yintercept=0, size=1) + geom_ribbon(aes(ymin=BI025, ymax=BI975
 d
 ```
 
-```{r}
+```{r sfs_cPain_points, fig.height=3.5,fig.width=5,dpi=200, fig.path='C:/Users/Yenny/Dropbox/sharelatex/Functional_Mediation_Analysis/', include=FALSE}
 c = ggplot(point_dta, aes(x = Parameter, y = t0)) 
-#c = c +facet_wrap( ~ Parameter , scale="free")
+c = c +facet_wrap( ~ Parameter , scale="free")
 
 c$labels = list(x = "Parameter", y = "Rating", colour = "Parameter")
 
-c = c + geom_pointrange(data=point_dta, mapping=aes(x=Parameter, y=t0, ymin=BI025, ymax=BI975), width=0.2, size=1, color="blue", fill="white", shape=1) 
+c = c+geom_hline(yintercept=0, size=0.5) + geom_pointrange(data=point_dta, mapping=aes(x=Parameter, y=t0, ymin=BI025, ymax=BI975), width=0.5, size=1, fill="white", shape=1) 
 # c + geom_point(size = 3) + geom_errorbar(aes(ymax = BI025, ymin = BI975))+guides(colour=FALSE)
 c
 ```
 
 
-```{r each_function, fig.height=3.2,fig.width=2.7,dpi=100, include=FALSE}
+```{r sfs_cPain_each_function, fig.height=3.2,fig.width=4,dpi=100, include=TRUE}
 c = ggplot(data=summ_tbl, aes(y = t0, x = time))
 
-myparams = levels(summ_tbl$Parameter)[!(levels(summ_tbl$Parameter) %in% c(paste0("abfunction", tp_v),paste0("bfunction", tp_v)))]
+myparams = levels(summ_tbl$Parameter)[!(levels(summ_tbl$Parameter) %in% c("ab", "d2", "g"))]
 
 for(param in myparams){
 c$labels = list(x = "Time in seconds", y = "Rating", colour = "black")
 d = c+geom_hline(yintercept=0, size=1.7) + geom_ribbon(data = filter(summ_tbl, Parameter == param), aes(ymin=BI025, ymax=BI975), fill="grey") + geom_path(data = filter(summ_tbl, Parameter == param), aes(x = time, y = t0),size = 1.7,colour = "#002D72") + guides(colour=FALSE)#  + theme_bw()
 print(d)
 }
-```
-
-```{r}
-line_data = rbind(alpha,beta, alphabeta)
-
-long_line = data.frame(ID=1:nrow(line_data), Simulation=rep(gl(4,R, labels=paste0("Simulation ",1:4)), 3), Parameter = as.character(gl(3,R*4, labels=c("Alpha","Beta", "Alpha*Beta"))), line_data)
-long_line = reshape(long_line, direction = "long", idvar = "ID", varying = paste0("X", 1:50), v.names = "BOLD")
-
-point_data = data.frame(ID=(max(long_line$ID)+(1:length(gamma))), 
-                        Simulation=gl(4,R, labels=paste0("Simulation ",1:4)),
-                        Parameter = "Gamma",
-                        time = max(long_line$time)/2,
-                        BOLD=gamma)
-
-all_data = rbind(point_data, long_line)
-all_data$Parameter = factor(all_data$Parameter, levels=c("Alpha", "Beta", "Alpha*Beta", "Gamma"))
-```
-
-
-```{r sfs_cPain, fig.height=8,fig.width=8,dpi=300, fig.path='C:/Users/Yenny/Dropbox/sharelatex/Functional_Mediation_Analysis/', include=FALSE}
-c = ggplot(data=summ_tbl, aes(y = "t0", x = "time",colour = "Parameter"))
-c = c +facet_grid(Parameter ~ ., scale="free")
-
-c$labels = list(x = "Time in seconds", y = "Rating", colour = "Simulation")
-
-c = c + geom_path(data = summ_tbl, aes(x = time, y = t0, group = ID, colour = Parameter), size = 0.7, alpha = 0.05) + guides(colour=FALSE)
-jit = position_jitter(width = 10)
-c = c + layer(data=point_data, position=jit, geom = "jitter", size = 2, alpha = 0.2)
-c
-#c = c + geom_boxplot(data=point_data)
-#c %+% long_line[ long_line$Parameter == "Alpha", ] # This changes the dataset used to plot
 ```
