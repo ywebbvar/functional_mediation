@@ -87,6 +87,7 @@ get_data <- function(subj){
 ```{r}
 big_dta = get_data(1)
 for(i in 2:93) big_dta = rbind(big_dta, get_data(i)) 
+big_dta = big_dta[big_dta$M186 <2,]
 ```
 
 
@@ -128,7 +129,7 @@ mediation = sfs_Mediation(x = X,y = Y,m = t(M),mediatorMethod="fosr2s", outcomeM
 time2 = Sys.time()
 
 time3 = Sys.time()
-stat = boot(data = big_dta, statistic = fbootstrap_ML,R = 510,sim = "ordinary",stype = "i",parallel = "multicore",ncpus=15)
+stat = boot(data = big_dta, statistic = fbootstrap_ML,R = 510,sim = "ordinary",stype = "i",parallel = "multicore",ncpus=20)
 time4 = Sys.time()
 time4 - time3
 
