@@ -87,15 +87,6 @@ get_data <- function(subj){
 ```{r}
 big_dta = get_data(1)
 for(i in 2:93) big_dta = rbind(big_dta, get_data(i)) 
-
-big_dta = big_dta[big_dta$M186 <2,]
-```
-
-Remove outliers
-```{r}
-Mcols = grep("M", names(big_dta))
-
-matplot(t(big_dta[,paste0("M", 150:185)]), type="l")
 ```
 
 
@@ -127,14 +118,14 @@ M = big_dta[,grep('M', colnames(big_dta))]
 
 nbasis = 50
 norder = 6
-lambda = 1e-10 
+lambda = 1e-10 #1e-14 when 0.01 sd_epsilon
 plots = FALSE
 ```
 
 ```{r}
 time1 = Sys.time()
-out1 = sfs_Mediation(x = X,y = Y,m = t(M),mediatorMethod="fosr2s", outcomeMethod="fgam",splinepars_lf=list(bs="ps",m=c(2, 1)),nbasis=nbasis,norder=norder,lambda=lambda, plot=TRUE, boot=FALSE)
+out1 = sfs_Mediation(x = X,y = Y,m = t(M),mediatorMethod="fosr2s", outcomeMethod="fgam",splinepars_lf=list(bs="ps",m=c(2, 1)),nbasis=nbasis,norder=norder,lambda=lambda, plot=plots, boot=FALSE)
 time2 = Sys.time()
 
-save(out1, file="~/GitHub/functional_mediation/data_application/data_application_cPain_gypsie/Data_analysis_cPain_out.Rdata")
+save(out1,out2, file="~/GitHub/functional_mediation/data_application/data_application_cPain_gypsie/Data_analysis_cPain_out.Rdata")
 ```
