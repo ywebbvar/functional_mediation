@@ -23,7 +23,7 @@
 #' @examples
 #' sfs_Mediation(x,y,m,...)
 
-sfs_Mediation <- function(x,y,m,mediatorMethod="fosr2s", outcomeMethod="fgam", splinepars_lf=list(bs="ps",m=c(3,2)), nbasis,norder,lambda=1e-8,pen=0.1, plot=FALSE, boot=FALSE, return_fits=FALSE){
+sfs_Mediation <- function(x,y,m,mediatorMethod="fosr2s", splinepars_fosr2s=list(nbasis = 15, norder = 4, basistype = "bspline"), outcomeMethod="fgam", splinepars_fgam=list(bs="ps",m=c(3,2)), splinepars_fRegress=list(nbasis=15,norder=4,lambda=1e-8), plot=FALSE, boot=FALSE, return_fits=FALSE){
   
   require(refund)
   require(mgcv)
@@ -35,7 +35,7 @@ sfs_Mediation <- function(x,y,m,mediatorMethod="fosr2s", outcomeMethod="fgam", s
   timevec = seq(0,T_sup, length.out=len)
   
   # Create bspline basis set
-  basis = create.bspline.basis(rangeval = c(0,T_sup), nbasis = nbasis, norder)
+  basis = create.bspline.basis(rangeval = c(0,T_sup), nbasis = splinepars_fRegress$nbasis, splinepars_fRegress$norder)
   
   ######################
   #### Path x -> m #####
@@ -55,10 +55,10 @@ sfs_Mediation <- function(x,y,m,mediatorMethod="fosr2s", outcomeMethod="fgam", s
   
   # Create basis set for beta functions
   betacell      = list()
-  betabasis     = create.bspline.basis(c(0,T_sup), nbasis, norder)
-  betafd1       = fd(matrix(0,nrow=nbasis, ncol=1), betabasis)
+  betabasis     = create.bspline.basis(c(0,T_sup), splinepars_fRegress$nbasis, splinepars_fRegress$norder)
+  betafd1       = fd(matrix(0,nrow=splinepars_fRegress$nbasis, ncol=1), betabasis)
   betacell[[1]] = fdPar(betafd1)
-  betafdj       = fd(matrix(0,nrow=nbasis, ncol=1), betabasis)
+  betafdj       = fd(matrix(0,nrow=splinepars_fRegress$nbasis, ncol=1), betabasis)
   betacell[[2]] = fdPar(betafdj)
   
   if(mediatorMethod=="fRegress"){
@@ -91,7 +91,7 @@ sfs_Mediation <- function(x,y,m,mediatorMethod="fosr2s", outcomeMethod="fgam", s
     if(mediatorMethod=="fosr2s"){
       tfine = seq(0,T_sup, length.out=len)
       
-      fit_m = fosr2s(Y = t(m), cbind(int=1,x=x), argvals = tfine, nbasis = 15, norder = 4, basistype = "bspline")
+      fit_m = fosr2s(Y = t(m), cbind(int=1,x=x), argvals = tfine, nbasis = splinepars_fosr2s$nbasis, norder = splinepars_fosr2s$norder, basistype = splinepars_fosr2s$basistype)
       af  = fit_m$est.func[,2]
       a   = sum(af)*(tfine[2] - tfine[1])
       d1f = fit_m$est.func[,1]
@@ -124,7 +124,7 @@ sfs_Mediation <- function(x,y,m,mediatorMethod="fosr2s", outcomeMethod="fgam", s
     betafd1       = fd(1,conbas)
     betacell[[1]] = fdPar(betafd1)
     betafdj       = fd(rep(0,nbasis), basis)
-    betafdPar     = fdPar(betafdj, lambda=lambda)
+    betafdPar     = fdPar(betafdj, lambda=splinepars_fRegress$lambda)
     betacell[[2]] = betafdPar
     betacell[[3]] = fdPar(betafd1)
     
@@ -164,9 +164,9 @@ sfs_Mediation <- function(x,y,m,mediatorMethod="fosr2s", outcomeMethod="fgam", s
     
   }else{
     if(outcomeMethod=="fgam"){
-      if(is.null(splinepars_lf[["k"]])) splinepars_lf[["k"]] = ifelse(N < 52, N-2, 50)
+      if(is.null(splinepars_fgam[["k"]])) splinepars_fgam[["k"]] = ifelse(N < 52, N-2, 50)
       m = t(m)
-      fit  = fgam(y ~ x + lf(m,splinepars=splinepars_lf)) # Defaults to quartic (m[1]=3) P-splines (bs="ps") with 2nd derivative order penalty (m[2]=2), and at most 50-dimensional basis 
+      fit  = fgam(y ~ x + lf(m,splinepars=splinepars_fgam)) # Defaults to quartic (m[1]=3) P-splines (bs="ps") with 2nd derivative order penalty (m[2]=2), and at most 50-dimensional basis 
       bfun = fit$smooth[[1]]
       P   = est_se_fgam(fit, term=1,n=len)
       bf  = P$estimate
@@ -189,8 +189,11 @@ sfs_Mediation <- function(x,y,m,mediatorMethod="fosr2s", outcomeMethod="fgam", s
   # Plot results
   if(plot==TRUE){
     mipar = par()$mfrow
+    plot(tfine, d1f, type="l", main="'d1' function")
+    lines(tfine, d1f + 2*d1_stderr, col="green")
+    lines(tfine, d1f - 2*d1_stderr, col="green")
+        
     par(mfrow=c(3,1))
-    
     plot(tfine, af, type="l", main="'a' function")
     lines(tfine, af + 2*a_stderr, col="green")
     lines(tfine, af - 2*a_stderr, col="green")
@@ -200,6 +203,7 @@ sfs_Mediation <- function(x,y,m,mediatorMethod="fosr2s", outcomeMethod="fgam", s
     lines(tfine, bf - 2*b_stderr, col="green")
     
     plot(tfine, abf, type="l", main="'ab' function")
+    
     par(mfrow=mipar)
   }
   #plot(x,y)
