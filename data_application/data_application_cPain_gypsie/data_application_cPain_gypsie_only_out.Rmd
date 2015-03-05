@@ -88,14 +88,10 @@ get_data <- function(subj){
 big_dta = get_data(1)
 for(i in 2:93) big_dta = rbind(big_dta, get_data(i)) 
 
+#Remove outliers
 big_dta = big_dta[big_dta$M186 <2,]
-```
-
-Remove outliers
-```{r}
-Mcols = grep("M", names(big_dta))
-
-matplot(t(big_dta[,paste0("M", 150:185)]), type="l")
+#Setting heat level to baseline
+big_dta$X = big_dta$X - min(big_dta$X)
 ```
 
 # Applying functional mediation
@@ -123,17 +119,58 @@ set.seed(seed)
 X = big_dta$X
 Y = big_dta$Y
 M = big_dta[,grep('M', colnames(big_dta))]
-
-nbasis = 50
-norder = 6
-lambda = 1e-10
-plots = FALSE
 ```
 
 ```{r}
 time1 = Sys.time()
-out1 = sfs_Mediation(x = X,y = Y,m = t(M),mediatorMethod="fosr2s", outcomeMethod="fgam",splinepars_lf=list(bs="ps",m=c(2, 1)),nbasis=nbasis,norder=norder,lambda=lambda, plot=TRUE, boot=FALSE)
+out50 = sfs_Mediation(x = X,y = Y,m = t(M),mediatorMethod="fosr2s",
+                     splinepars_fosr2s=list(nbasis = 50, norder = 4, 
+                                            basistype = "bspline"), 
+                     outcomeMethod="fgam",
+                     splinepars_fgam=list(bs="ps",m=c(2, 1), k=50),plot=TRUE, 
+                     boot=FALSE)
 time2 = Sys.time()
+time2-time1
 
-save(out1,file="~/GitHub/functional_mediation/data_application/data_application_cPain_gypsie/Data_analysis_cPain_out.Rdata")
+
+time1 = Sys.time()
+out30 = sfs_Mediation(x = X,y = Y,m = t(M),mediatorMethod="fosr2s",
+                     splinepars_fosr2s=list(nbasis = 30, norder = 4, 
+                                            basistype = "bspline"), 
+                     outcomeMethod="fgam",
+                     splinepars_fgam=list(bs="ps",m=c(2, 1), k=30),plot=TRUE, 
+                     boot=FALSE)
+time2 = Sys.time()
+time2-time1
+
+time1 = Sys.time()
+out15 = sfs_Mediation(x = X,y = Y,m = t(M),mediatorMethod="fosr2s",
+                     splinepars_fosr2s=list(nbasis = 15, norder = 4, 
+                                            basistype = "bspline"), 
+                     outcomeMethod="fgam",
+                     splinepars_fgam=list(bs="ps",m=c(2, 1), k=15),plot=TRUE, 
+                     boot=FALSE)
+time2 = Sys.time()
+time2-time1
+
+save(out50,out15,file="~/GitHub/functional_mediation/data_application/data_application_cPain_gypsie/Data_analysis_cPain_out_15.Rdata")
 ```
+
+I will use 15 basis for the scalar-on-function outcome model.
+
+fRegress cannot handle all the data, because it needs too much memory. I select a random sample and see how it performs.
+
+```{r}
+small = sample(1:nrow(big_dta), size=100)
+X = big_dta$X[small]
+Y = big_dta$Y[small]
+M = big_dta[small,grep('M', colnames(big_dta))]
+
+time1 = Sys.time()
+out4 = sfs_Mediation(x = X,y = Y,m = t(M),mediatorMethod="fRegress",
+                     splinepars_fRegress=list(nbasis=15,norder=4,lambda=1e-8),
+                     outcomeMethod="fRegress",plot=TRUE,boot=FALSE)
+time2 = Sys.time()
+time2-time1
+```
+
