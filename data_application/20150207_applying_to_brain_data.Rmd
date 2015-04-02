@@ -35,7 +35,7 @@ BR_subjects <- datos[(1:943)+(j-1)*943,1]
   BR_outliers <- which(abs(as.matrix(BR)) > 30 )
     for(i in BR_outliers) if(floor(i/943)+1==24){
             BR[i%%943,23] <- NA
-			  }else{
+  		  }else{
 			  BR[i%%943,floor(i/943)+1] <- NA
 			  }
 
