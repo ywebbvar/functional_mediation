@@ -226,7 +226,7 @@ sfs_Mediation <- function(x,y,m,mediatorMethod="fosr2s", splinepars_fosr2s=list(
                                                          "g",
                                                          paste0('d1function_',   1:length(d1f)),
                                                          "d2")
-                        result[["output_model_fit"]] = ifelse(outcomeMethod=="fgam", fit,fRegressCell_Y)
+                        result[["output_model_fit"]] = if(outcomeMethod=="fgam"){result[["output_model_fit"]] <- fit}else{result[["output_model_fit"]] <- fRegressCell_Y}
                         result[["mediator_model_fit"]] = ifelse(mediatorMethod=="fosr2s", fit_m,fRegressCell_M)
   }else{
     result = list('afunction'  = af, 'a_stderr'  = a_stderr, 
