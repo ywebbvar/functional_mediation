@@ -135,6 +135,11 @@ line_dta  = summ_tbl[!(summ_tbl$Parameter %in% c(&quot;ab&quot;, &quot;g&quot;, 
 line_dta$Parameter = factor(line_dta$Parameter, levels=c(&quot;afunction&quot;, &quot;bfunction&quot;, &quot;abfunction&quot;, &quot;d1function&quot;), labels=c(&quot;Alpha(t)&quot;, &quot;Beta(t)&quot;, &quot;Alpha*Beta(t)&quot;, &quot;Delta 1(t)&quot;))
 point_dta = summ_tbl[(summ_tbl$Parameter %in% c(&quot;ab&quot;, &quot;g&quot;, &quot;d2&quot;)), ]
 point_dta$Parameter = factor(point_dta$Parameter, levels=c(&quot;ab&quot;, &quot;g&quot;, &quot;d2&quot;), labels=c(&quot;Indirect Effect&quot;, &quot;Direct Effect&quot;, &quot;Delta 2&quot;))</code></pre>
+<pre class="r"><code>point_dta</code></pre>
+<pre><code>##           Parameter time     BI025    BI975       t0
+## 1   Indirect Effect    1 6.7314256 8.414662 7.529458
+## 746         Delta 2    1 6.3183749 7.880077 7.128276
+## 747   Direct Effect    1 0.8391306 1.627401 1.278112</code></pre>
 </div>
 
 

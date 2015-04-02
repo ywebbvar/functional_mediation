@@ -120,3 +120,8 @@ d = c+geom_hline(yintercept=0, size=1.7) + geom_ribbon(data = filter(summ_tbl, P
 print(d)
 }
 ```
+
+```{r}
+point_dta
+```
+
